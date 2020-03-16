@@ -203,14 +203,13 @@ const getAuthorData = async ({ page, link }) => {
 const getData = async ({ page, link: websiteLink, page2 }) => {
   await page.bringToFront();
 
-  let rate = await page.$eval('.section-star-display', element => element ? element.textContent : '').catch(() => {});
-
   let website = await getTextByLabel({ page, label: 'Сайт' });
 
   if (!website || website === 'Добавить сайт') website = await getTextByLabel({ page, label: 'Открыть ссылку для бронирования' })
 
   if (!website || !website.includes(websiteLink)) return null;
 
+      let rate = await page.$eval('.section-star-display', element => element ? element.textContent : '').catch(() => {});
   let phone = await getTextByLabel({ page, label: 'Телефон' })
   let address = await getTextByLabel({ page, label: 'Адрес' })
   let workingHours = await getWorkingHours({ page });

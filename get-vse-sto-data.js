@@ -4,86 +4,95 @@ const _ = require('lodash');
 
 const { clickSelectorAndWait, waitRandomTime, logError } = require('./helers');
 
-const COORDINATES = '@50.4620394,30.5421353,11z';
-
-const content = fs.readFileSync('result.json');
+const content = fs.readFileSync('results/result.json');
 const jsonContent = JSON.parse(content);
 
 console.log(jsonContent);
 
-const getData = async ({ page, link: websiteLink, page2 }) => {
+const scrollToLastComment = async ({ page }) => {
+  const loadMoreBtn = await clickSelectorAndWait({ page, selector: '.inner_content form .button' });
+
+  if (!loadMoreBtn) {
+    return page.$$('.reviews li');
+  }
+
+  await scrollToLastComment({ page });
+};
+
+
+const getReview = async ({ reviewWrapper }) => {
+  const comment = await reviewWrapper.$$eval('p', elems => elems[1].textContent).catch(() => {});
+  const response = await reviewWrapper.$$eval('.reply p', elems => elems[1].textContent).catch(() => {});
+  const date = await reviewWrapper.$eval('.review-date', elem => elem.textContent).catch(() => {});
+  const rateText = await reviewWrapper.$eval('.review-meta .stars', elem => elem.getAttribute('title')).catch(() => {});
+  const rate = rateText ? rateText.split(' ')[0] : null;
+
+  return { rate, comment, date, response };
+};
+
+const getReviews = async ({ page }) => {
+  const reviewWrappers = await scrollToLastComment({ page });
+  const reviews = [];
+
+  for (let i = 0; i < reviewWrappers.length; i++) {
+    const review = await getReview({ reviewWrapper: reviewWrappers[i] });
+
+    reviews.push(review);
+  }
+
+  return reviews;
+};
+
+const getData = async ({ page, link: websiteLink }) => {
   await page.bringToFront();
 
-  let rate = await page.$eval('.section-star-display', element => element ? element.textContent : '').catch(() => {});
-
-  let website = await getTextByLabel({ page, label: 'Сайт' });
-
-  if (!website || website === 'Добавить сайт') website = await getTextByLabel({ page, label: 'Открыть ссылку для бронирования' })
+  let website = await page.$eval('.service-info .url', el => el.getAttribute('href')).catch(() => {});
 
   if (!website || !website.includes(websiteLink)) return null;
 
-  let phone = await getTextByLabel({ page, label: 'Телефон' })
-  let address = await getTextByLabel({ page, label: 'Адрес' })
-  let workingHours = await getWorkingHours({ page });
-  let coordinates = await getCoordinates({ page });
-
-  await waitRandomTime({ page });
-
-  let link = await getPointLink({ page });
+  let rate = await page.$eval('.rating', element => element ? element.textContent : null).catch(() => {});
+  let link = await page.url();
   let reviews = await getReviews({ page });
 
-
-  for (let i = 0; i < (reviews.length < 3 ? reviews.length : 3); i++) {
-    const authorData = await getAuthorData({ page: page2, link: reviews[i].titleLink });
-    reviews[i].authorData = authorData;
-  }
-
-
-  return { rate, website, address, website, phone, workingHours, coordinates, link, reviews };
+  return { rate, link, reviews };
 };
 
-const getSuggestions = ({ page }) => {
-  return page.$$('.section-result');
+const getSuggestionsLinks = async ({ page }) => {
+  const links = await page.$$eval('.gsc-resultsRoot .gsc-webResult a.gs-title', elems => elems.map(elem => elem.getAttribute('href')))
+    .catch(logError);
+
+  if (!links) return [];
+
+  return links;
 };
 
-const processSuggestion = async ({ page, suggestion, link, page2 }) => {
-  await suggestion.click({
-    delay: _.round(0, 1000),
-  });
-
+const processSuggestion = async ({ page, suggestion, link }) => {
+  await page.goto(suggestion).catch(logError);
   await waitRandomTime({ page });
 
-  return getData({ page, link, page2 });
+  return getData({ page, link });
 };
 
-const processLink = async ({ page, page2, link }) => {
-  const url = `https://www.google.com/maps/search/${link}/${COORDINATES}`;
+const processLink = async ({ page, link }) => {
+  const url = `https://vse-sto.com.ua/search/results/?q=${link}`;
 
   await page.bringToFront();
   await page.goto(url);
   await waitRandomTime({ page });
 
-  const suggestions = await getSuggestions({ page });
-  const data = [];
+  const suggestions = await getSuggestionsLinks({ page });
+  let data = null;
 
-  if (!suggestions.length) {
-    const result = await getData({ page, link, page2 });
+  for (let i = 0; i < suggestions.length; i++) {
+    const result = await processSuggestion({ page, suggestion: suggestions[i], link });
 
-    if (result) data.push(result);
-  } else {
-    for (let i = 0; i < suggestions.length; i++) {
-      await page.bringToFront();
-      const newSuggestions = await getSuggestions({ page });
+    if (result) {
+      data = result;
 
-      const result = await processSuggestion({ page, page2, suggestion: newSuggestions[i], url, link });
-      if (result) data.push(result);
-
-      if (suggestions.length > 5 & i > 4 & data.length < suggestions.length) break;
-
-      await page.goto(url);
-
-      await waitRandomTime({ page });
+      break;
     }
+
+    if (suggestions.length > 5 & i > 4 && !data) break;
   }
 
   console.log(data);
@@ -98,22 +107,18 @@ puppeteer.launch({ headless: false, args: ['--lang=ru-RU'] }).then(async browser
   await page.setExtraHTTPHeaders({
     'Accept-Language': 'ru_RU',
   });
-  const page2 = await browser.newPage();
-  await page2.setExtraHTTPHeaders({
-    'Accept-Language': 'ru_RU',
-  });
 
   const data = [];
 
   for (const item of jsonContent) {
-    const result = await processLink({ page, page2, link: item.website });
+    const result = await processLink({ page, link: item.website });
 
     data.push({
       website: item.website,
-      points: result.length ? result : [],
+      data: result,
     });
 
-    fs.writeFileSync('google-maps-data-result.json', JSON.stringify(data), 'utf8', () => {});
+    fs.writeFileSync('results/vse-sto-data-result.json', JSON.stringify(data), 'utf8', () => {});
   }
 
   await browser.close();

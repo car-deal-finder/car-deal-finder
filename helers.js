@@ -1,8 +1,10 @@
-export const waitRandomTime = ({ page }) => {
+const _ = require('lodash');
+
+const waitRandomTime = ({ page }) => {
   return page.waitFor(_.round(3000, 6000));
 };
 
-export const clickSelectorAndWait = async ({ page, selector }) => {
+const clickSelectorAndWait = async ({ page, selector }) => {
   const elem = await page.$(selector);
 
   if (!elem) return null;
@@ -18,3 +20,10 @@ export const clickSelectorAndWait = async ({ page, selector }) => {
 };
 
 const logError = (err) => console.error(err);
+
+module.exports = {
+  waitRandomTime,
+  clickSelectorAndWait,
+  logError,
+};
+

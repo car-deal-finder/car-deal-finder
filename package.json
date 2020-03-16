@@ -1,7 +1,8 @@
 {
   "scripts": {
     "get-domains": "node get-domains.js",
-    "get-google-maps-data": "node get-google-maps-data.js"
+    "get-google-maps-data": "node get-google-maps-data.js",
+    "get-vse-sto-data": "node get-vse-sto-data.js"
   },
   "dependencies": {
     "canvas": "^2.6.1",
