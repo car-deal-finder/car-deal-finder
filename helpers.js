@@ -1,5 +1,11 @@
 const _ = require('lodash');
 
+const PUBLICATION_DATE_FRAMES = [
+  'days',
+  'weeks',
+  'months',
+];
+
 const waitRandomTime = ({ page }) => {
   return page.waitFor(_.round(3000, 6000));
 };
@@ -25,5 +31,6 @@ module.exports = {
   waitRandomTime,
   clickSelectorAndWait,
   logError,
+  PUBLICATION_DATE_FRAMES,
 };
 

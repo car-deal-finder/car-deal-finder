@@ -2,11 +2,11 @@ const fs = require('fs');
 const puppeteer = require('puppeteer');
 const _ = require('lodash');
 
-const { clickSelectorAndWait, waitRandomTime, logError } = require('./helers');
+const { clickSelectorAndWait, waitRandomTime, logError } = require('./helpers');
 
 const COORDINATES = '@50.4620394,30.5421353,11z';
 
-const content = fs.readFileSync('result.json');
+const content = fs.readFileSync('results/result.json');
 const jsonContent = JSON.parse(content);
 
 console.log(jsonContent);
@@ -130,6 +130,7 @@ const getReviewData = async ({ reviewWrapper }) => {
 
   let titleLink = await reviewWrapper.$eval('.section-review-titles a', el => el.getAttribute('href')).catch(logError);
   let title = await reviewWrapper.$eval('.section-review-titles .section-review-title span', el => el.textContent).catch(logError);
+  let subtitle = await reviewWrapper.$eval('.section-review-titles section-review-subtitle span', el => el.textContent).catch(logError);
   let rank = await metadataItems[1].evaluate(el => el.getAttribute('aria-label')).catch(logError);
   let date = await reviewWrapper.$eval('.section-review-publish-date', el => el.textContent).catch(logError);
   let comment = await reviewWrapper.$eval('.section-review-review-content .section-review-text', el => el ? el.textContent : null).catch(() => {});
@@ -141,6 +142,7 @@ const getReviewData = async ({ reviewWrapper }) => {
     date,
     titleLink,
     title,
+    subtitle,
     comment: comment || null,
     response: response || null,
     photoAttached: !!photo
@@ -221,7 +223,7 @@ const getData = async ({ page, link: websiteLink, page2 }) => {
   let reviews = await getReviews({ page });
 
 
-  for (let i = 0; i < (reviews.length < 3 ? reviews.length : 3); i++) {
+  for (let i = 0; i < reviews.length; i++) {
     const authorData = await getAuthorData({ page: page2, link: reviews[i].titleLink });
     reviews[i].authorData = authorData;
   }

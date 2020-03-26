@@ -2,7 +2,9 @@
   "scripts": {
     "get-domains": "node get-domains.js",
     "get-google-maps-data": "node get-google-maps-data.js",
-    "get-vse-sto-data": "node get-vse-sto-data.js"
+    "get-vse-sto-data": "node get-vse-sto-data.js",
+    "aggregate-data": "node aggregator.js",
+    "cheating-check": "node cheating-check.js"
   },
   "dependencies": {
     "canvas": "^2.6.1",
@@ -10,6 +12,7 @@
     "google-search-results-nodejs": "^1.3.0",
     "jsdom": "^16.2.1",
     "lodash": "^4.17.15",
+    "moment": "^2.24.0",
     "puppeteer": "^2.1.1"
   }
 }

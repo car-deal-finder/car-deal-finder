@@ -2,7 +2,7 @@ const fs = require('fs');
 const puppeteer = require('puppeteer');
 const _ = require('lodash');
 
-const { clickSelectorAndWait, waitRandomTime, logError } = require('./helers');
+const { clickSelectorAndWait, waitRandomTime, logError } = require('./helpers');
 
 const content = fs.readFileSync('results/result.json');
 const jsonContent = JSON.parse(content);
