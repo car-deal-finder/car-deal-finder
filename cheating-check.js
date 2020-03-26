@@ -21,16 +21,39 @@ const MIN_FRAME_CONFIG = {
   },
 }
 
+const detectPeaks = ({ data, windowWidth, threshold }) => {
+  const peaks = [];
+  for (let i = 0; i < data.length; i++) {
+    const start = Math.max(0, i - windowWidth);
+    const end = Math.min(data.length, i + windowWidth);
+    let deltaAcc = 0;
+    for (let a = start; a < end; a++) {
+      // if (a === start) continue;
+      deltaAcc += Math.abs(data[a - 1] - data[a]);
+    }
+    if (deltaAcc > threshold) {
+      peaks.push(i);
+    }
+  }
+  return peaks;
+}
+
+
 const processReviewsByDateFrame = ({ reviews, frame }) => {
-  const filteredReviews = reviews.filter(review => review.dateFrames[frame]);
+  console.log(`++++frame ${frame}`)
+  const filteredReviews = reviews.filter(review => review.dateFrames[frame]).reverse();
 
-  const groupedReviews = _.groupBy(filteredReviews, (o) => `${frame} - ${o.dateFrames[frame].from} - ${o.dateFrames[frame].to}`);
+  const groupedReviews = _.groupBy(filteredReviews, (o) => `${o.dateFrames[frame].from} - ${o.dateFrames[frame].to}`);
 
+  const groupsKeys = Object.keys(groupedReviews);
   const groups = Object.values(groupedReviews);
 
-  Object.keys(groupedReviews).map(key => {
+  const reviewsAmountPeaks = detectPeaks({ data: groups.map(group => group.length), windowWidth: 3, threshold: 15 });
+
+  groupsKeys.map((key, index) => {
     console.log(`${key} - amount ${groupedReviews[key].length}`);
-    console.log(groupedReviews[key].reduce((prev, next) => prev + next.rank, 0) / groupedReviews[key].length)
+
+    if ( reviewsAmountPeaks.indexOf(index) !== -1) console.log('^peak!!!!!')
   })
 };
 
