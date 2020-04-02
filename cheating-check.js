@@ -4,7 +4,7 @@ const _ = require('lodash');
 
 const { PUBLICATION_DATE_FRAMES } = require('./helpers');
 
-const aggregatedData = JSON.parse(fs.readFileSync('./results/aggregated-data-short.json', 'utf8'));
+const aggregatedData = JSON.parse(fs.readFileSync('./results/aggregated-data.json', 'utf8'));
 
 const MIN_FRAME_CONFIG = {
   [PUBLICATION_DATE_FRAMES[0]]: {
@@ -41,11 +41,11 @@ const MIN_FRAME_CONFIG = {
 // }
 
 const detectPeaks = ({ data, windowWidth = 3, threshold }) => {
-  const peaks = {};
+  let peaks = {};
 
   if (data.length < windowWidth * 2) return peaks;
 
-  for (let i = 0; i < data.length; i++) {
+  dataLoop: for (let i = 0; i < data.length; i++) {
     if (i + windowWidth * 2 - 1 > data.length - 1) break;
 
     let currentWindowValue = 0;
@@ -55,8 +55,20 @@ const detectPeaks = ({ data, windowWidth = 3, threshold }) => {
       const windowStart = i + windowWidth * windowIndex;
       const windowEnd = windowStart + windowWidth - 1;
 
-      for (let unitIndex = windowStart; unitIndex <= windowEnd; unitIndex++) {
+      if (windowWidth !== 1) {
+        const localDataEndIndex = windowIndex === 0 ? windowEnd + 2 : windowEnd + 1;
 
+        const localData = data.slice(windowStart, localDataEndIndex);
+        const localPeaks = detectPeaks({ data: localData, windowWidth: 1, threshold });
+
+        const localPeaksMap = Object.keys(localPeaks).reduce((prev, key) => ({ ...prev, [parseInt(key) + windowStart]: localPeaks[key] }), {});
+
+        peaks = { ...peaks, ...localPeaksMap };
+
+        if (windowIndex === 1 && Object.keys(localPeaksMap).length) continue dataLoop;
+      }
+
+      for (let unitIndex = windowStart; unitIndex <= windowEnd; unitIndex++) {
         if (windowIndex === 0) currentWindowValue += data[unitIndex];
         if (windowIndex === 1) nextWindowValue += data[unitIndex];
       }
@@ -68,8 +80,8 @@ const detectPeaks = ({ data, windowWidth = 3, threshold }) => {
 
     if (Math.abs(delta) < threshold) continue;
 
-    if (delta > 0) peaks[nextWindowFirstIndex] = 1;
-    if (delta < 0) peaks[nextWindowFirstIndex] = -1;
+    if (delta > 0) peaks[nextWindowFirstIndex] = parseFloat((nextWindowValue / currentWindowValue).toFixed(2));
+    if (delta < 0) peaks[nextWindowFirstIndex] = -parseFloat((currentWindowValue / nextWindowValue).toFixed(2));
   }
 
   return peaks;
@@ -77,7 +89,7 @@ const detectPeaks = ({ data, windowWidth = 3, threshold }) => {
 
 
 const processReviewsByDateFrame = ({ reviews, frame }) => {
-  console.log(`++++frame ${frame}`)
+  // console.log(`++++frame ${frame}`)
   const filteredReviews = reviews.filter(review => review.dateFrames[frame]).reverse();
 
   const groupedReviews = _.groupBy(filteredReviews, (o) => `${o.dateFrames[frame].from} - ${o.dateFrames[frame].to}`);
@@ -85,24 +97,43 @@ const processReviewsByDateFrame = ({ reviews, frame }) => {
   const groupsKeys = Object.keys(groupedReviews);
   const groups = Object.values(groupedReviews);
 
-  const reviewsAmountPeaks = detectPeaks({ data: groups.map(group => group.length), windowWidth: 2, threshold: 5 });
+  const reviewsAmountPeaks = detectPeaks({ data: groups.map(group => group.length), windowWidth: 1, threshold: 5 });
 
-  groupsKeys.map((key, index) => {
-    console.log(`${key} - amount ${groupedReviews[key].length}`);
+  // groupsKeys.map((key, index) => {
+  //   console.log(`${key} - amount ${groupedReviews[key].length}`);
+  //
+  //   if (reviewsAmountPeaks[index]) console.log(`^peak!!!!! ${reviewsAmountPeaks[index]}`)
+  // })
 
-    if (reviewsAmountPeaks[index]) console.log(`^peak!!!!! ${reviewsAmountPeaks[index]}`)
-  })
+  return Object.keys(reviewsAmountPeaks).reduce((prev, key) => ({ ...prev, [groupsKeys[key]]: reviewsAmountPeaks[key]}), {});
 };
 
 const processReviewsByDateFrames = ({ reviews }) => {
-  return PUBLICATION_DATE_FRAMES.map(frame => processReviewsByDateFrame({ frame, reviews }));
+  return PUBLICATION_DATE_FRAMES.reduce((prev, frame) => {
+    const result = processReviewsByDateFrame({ frame, reviews });
+
+    if (!Object.keys(result).length) return prev;
+
+    return ({ ...prev, [frame]: result });
+  }, {});
 };
 
+const result = aggregatedData.map((item) => {
+  let cheatingDetected = false;
 
+  const googleMapsPointsResult = item.googleMapsPoints.map((point) => {
+    const { reviews } = point;
+    const cheating = processReviewsByDateFrames({ reviews });
 
-aggregatedData.map((item) => item.googleMapsPoints.map(({ reviews }) => {
-  console.log('========')
-  processReviewsByDateFrames({ reviews });
-}));
+    if (Object.keys(cheating).length) cheatingDetected = true;
 
-aggregatedData.map((item) => console.log('-----------') || processReviewsByDateFrames({ reviews: item.vseStoPoint ? item.vseStoPoint.reviews : [] }));
+    return { ...point, cheating };
+  });
+
+  return { ...item, cheatingDetected, googleMapsPoints: googleMapsPointsResult };
+});
+
+console.log(result)
+fs.writeFileSync('results/cheating-detected-data.json', JSON.stringify(result), 'utf8', () => {});
+
+// aggregatedData.map((item) => console.log('-----------') || processReviewsByDateFrames({ reviews: item.vseStoPoint ? item.vseStoPoint.reviews : [] }));
