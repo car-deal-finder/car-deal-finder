@@ -4,7 +4,9 @@
     "get-google-maps-data": "node get-google-maps-data.js",
     "get-vse-sto-data": "node get-vse-sto-data.js",
     "aggregate-data": "node aggregator.js",
-    "cheating-check": "node cheating-check.js"
+    "cheating-check": "node cheating-check.js",
+    "customer-feedback-check": "node customer-feedback-checker.js",
+    "convert-to-result": "node convert-to-result.js"
   },
   "dependencies": {
     "canvas": "^2.6.1",

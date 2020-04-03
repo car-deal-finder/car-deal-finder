@@ -6,7 +6,7 @@ const { clickSelectorAndWait, waitRandomTime, logError } = require('./helpers');
 
 const COORDINATES = '@50.4620394,30.5421353,11z';
 
-const content = fs.readFileSync('results/result.json');
+const content = fs.readFileSync('results/get-domains-data.json');
 const jsonContent = JSON.parse(content);
 
 console.log(jsonContent);
@@ -127,6 +127,8 @@ const getReviewData = async ({ reviewWrapper }) => {
   if (reviewTooOld) return null;
 
   const metadataItems = await reviewWrapper.$$('.section-review-metadata span');
+
+  await clickSelectorAndWait({ selector: '.section-expand-review', page: reviewWrapper });
 
   let titleLink = await reviewWrapper.$eval('.section-review-titles a', el => el.getAttribute('href')).catch(logError);
   let title = await reviewWrapper.$eval('.section-review-titles .section-review-title span', el => el.textContent).catch(logError);

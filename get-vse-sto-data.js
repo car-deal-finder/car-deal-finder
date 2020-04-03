@@ -1,10 +1,9 @@
 const fs = require('fs');
 const puppeteer = require('puppeteer');
-const _ = require('lodash');
 
 const { clickSelectorAndWait, waitRandomTime, logError } = require('./helpers');
 
-const content = fs.readFileSync('results/result.json');
+const content = fs.readFileSync('results/get-domains-data.json');
 const jsonContent = JSON.parse(content);
 
 console.log(jsonContent);

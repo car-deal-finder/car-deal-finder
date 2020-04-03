@@ -1,25 +1,9 @@
 const fs = require('fs');
-const moment = require('moment');
 const _ = require('lodash');
 
 const { PUBLICATION_DATE_FRAMES } = require('./helpers');
 
 const aggregatedData = JSON.parse(fs.readFileSync('./results/aggregated-data.json', 'utf8'));
-
-const MIN_FRAME_CONFIG = {
-  [PUBLICATION_DATE_FRAMES[0]]: {
-    amount: 24,
-    units: 'hours',
-  },
-  [PUBLICATION_DATE_FRAMES[1]]: {
-    amount: 7,
-    units: 'days',
-  },
-  [PUBLICATION_DATE_FRAMES[2]]: {
-    amount: 28,
-    units: 'days',
-  },
-}
 
 // const detectPeaks = ({ data, windowWidth, threshold }) => {
 //   const peaks = [];
@@ -89,7 +73,6 @@ const detectPeaks = ({ data, windowWidth = 3, threshold }) => {
 
 
 const processReviewsByDateFrame = ({ reviews, frame }) => {
-  // console.log(`++++frame ${frame}`)
   const filteredReviews = reviews.filter(review => review.dateFrames[frame]).reverse();
 
   const groupedReviews = _.groupBy(filteredReviews, (o) => `${o.dateFrames[frame].from} - ${o.dateFrames[frame].to}`);
@@ -98,12 +81,6 @@ const processReviewsByDateFrame = ({ reviews, frame }) => {
   const groups = Object.values(groupedReviews);
 
   const reviewsAmountPeaks = detectPeaks({ data: groups.map(group => group.length), windowWidth: 1, threshold: 5 });
-
-  // groupsKeys.map((key, index) => {
-  //   console.log(`${key} - amount ${groupedReviews[key].length}`);
-  //
-  //   if (reviewsAmountPeaks[index]) console.log(`^peak!!!!! ${reviewsAmountPeaks[index]}`)
-  // })
 
   return Object.keys(reviewsAmountPeaks).reduce((prev, key) => ({ ...prev, [groupsKeys[key]]: reviewsAmountPeaks[key]}), {});
 };
