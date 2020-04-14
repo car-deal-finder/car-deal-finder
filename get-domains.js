@@ -1,30 +1,7 @@
 const Crawler = require("crawler");
 const fs = require('fs');
+const { getUrls, extractHostname } = require('helpers');
 
-function extractHostname(url) {
-  var hostname;
-  //find & remove protocol (http, ftp, etc.) and get hostname
-
-  if (url.indexOf("//") > -1) {
-    hostname = url.split('/')[2];
-  }
-  else {
-    hostname = url.split('/')[0];
-  }
-
-  //find & remove port number
-  hostname = hostname.split(':')[0];
-  //find & remove "?"
-  hostname = hostname.split('?')[0];
-
-  if (hostname.indexOf('www.') === 0) hostname = hostname.replace('www.', '');
-
-  return hostname;
-}
-
-function getUrls({ amount }) {
-  return new Array(amount).fill(1).map((o, index) => `https://www.google.com/search?q=%D1%80%D0%B5%D0%BC%D0%BE%D0%BD%D1%82+%D0%B0%D0%BA%D0%BF%D0%BF+%D0%BA%D0%B8%D0%B5%D0%B2&start=${10 * index}`)
-}
 function writeDomains({ domains }) {
   fs.writeFile('results/get-domains-data.json', JSON.stringify(domains), 'utf8', () => {});
 }
@@ -51,4 +28,4 @@ const c = new Crawler({
   }
 });
 
-c.queue(getUrls({ amount: 10 }));
+c.queue(getUrls({ amount: 10, search: '%D1%80%D0%B5%D0%BC%D0%BE%D0%BD%D1%82+%D0%B0%D0%BA%D0%BF%D0%BF+%D0%BA%D0%B8%D0%B5%D0%B2' }));

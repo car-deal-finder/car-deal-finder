@@ -1,21 +1,32 @@
 const fs = require('fs');
 const puppeteer = require('puppeteer');
+const moment = require('moment');
 
-const { clickSelectorAndWait, waitRandomTime, logError } = require('./helpers');
+const { clickSelectorAndWait, waitRandomTime, logError, retry } = require('./helpers');
 
-const content = fs.readFileSync('results/get-domains-data.json');
+const content = fs.readFileSync('get-domains-data.json');
+
+let existData;
+try {
+  const existDataJSON = fs.readFileSync('results/vse-sto-data-result.json');
+  existData = JSON.parse(existDataJSON);
+} catch (e) {
+
+}
+
 const jsonContent = JSON.parse(content);
+
 
 console.log(jsonContent);
 
 const scrollToLastComment = async ({ page }) => {
-  const loadMoreBtn = await clickSelectorAndWait({ page, selector: '.inner_content form .button' });
+  const loadMoreBtn = await clickSelectorAndWait({ page, selector: '.inner_content form .button', waitForNavigation: true });
 
   if (!loadMoreBtn) {
     return page.$$('.reviews li');
   }
 
-  await scrollToLastComment({ page });
+  return scrollToLastComment({ page });
 };
 
 
@@ -49,11 +60,12 @@ const getData = async ({ page, link: websiteLink }) => {
 
   if (!website || !website.includes(websiteLink)) return null;
 
-  let rate = await page.$eval('.rating', element => element ? element.textContent : null).catch(() => {});
+  let title = await page.$eval('h1', element => element.textContent.replace('СТО ', '').trim()).catch(() => {});
+  let rate = await page.$eval('.rating', element => element.textContent).catch(() => {});
   let link = await page.url();
   let reviews = await getReviews({ page });
 
-  return { rate, link, reviews };
+  return { rate, link, reviews, title };
 };
 
 const getSuggestionsLinks = async ({ page }) => {
@@ -66,7 +78,7 @@ const getSuggestionsLinks = async ({ page }) => {
 };
 
 const processSuggestion = async ({ page, suggestion, link }) => {
-  await page.goto(suggestion).catch(logError);
+  await retry(() => page.goto(suggestion));
   await waitRandomTime({ page });
 
   return getData({ page, link });
@@ -76,7 +88,7 @@ const processLink = async ({ page, link }) => {
   const url = `https://vse-sto.com.ua/search/results/?q=${link}`;
 
   await page.bringToFront();
-  await page.goto(url);
+  await retry(() => page.goto(url));
   await waitRandomTime({ page });
 
   const suggestions = await getSuggestionsLinks({ page });
@@ -94,8 +106,6 @@ const processLink = async ({ page, link }) => {
     if (suggestions.length > 5 & i > 4 && !data) break;
   }
 
-  console.log(data);
-
   await waitRandomTime({ page });
 
   return data;
@@ -103,19 +113,32 @@ const processLink = async ({ page, link }) => {
 
 puppeteer.launch({ headless: false, args: ['--lang=ru-RU'] }).then(async browser => {
   const page = await browser.newPage();
+  page.setDefaultNavigationTimeout(60000 * 2);
   await page.setExtraHTTPHeaders({
     'Accept-Language': 'ru_RU',
   });
 
-  const data = [];
+  const data = [
+    ...(existData || [])
+  ];
 
   for (const item of jsonContent) {
+    if (
+      existData &&
+      existData.find(o => o.website === item.website && moment(o.scrappedDate).add(1, 'week').isAfter(moment()))
+    ) continue;
+
     const result = await processLink({ page, link: item.website });
 
-    data.push({
+    const resultItem = {
       website: item.website,
       data: result,
-    });
+      scrappedDate: moment().format(),
+    };
+
+    console.log(resultItem);
+
+    data.push(resultItem);
 
     fs.writeFileSync('results/vse-sto-data-result.json', JSON.stringify(data), 'utf8', () => {});
   }

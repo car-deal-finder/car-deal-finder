@@ -3,22 +3,25 @@ const fs = require('fs');
 const data = JSON.parse(fs.readFileSync('./results/customer-feedback-data.json', 'utf8'));
 
 const result = data.map((service) => {
-  const { googleMapsPoints, vseStoPoint, website, solveCustomerClaimsPercentage, cheatingDetected } = service;
+  const { googleMapsPoints, vseStoPoint, website, solveCustomerClaimsPercentage, cheatingDetected, specialized, name } = service;
 
   const {
     points,
     sideServicesRank
   } = googleMapsPoints.reduce((prev, { phone, address, coordinates, workingHours, link, rank }) => {
+    const points = [...prev.points];
+
+    if (!prev.points.find(prevPoint => prevPoint.address === address)) {
+      points.push({
+        address,
+        coordinates,
+        phone,
+        workingHours,
+      });
+    }
+
     return {
-      points: [
-        ...prev.points,
-        {
-          address,
-          coordinates,
-          phone,
-          workingHours,
-        }
-      ],
+      points,
       sideServicesRank: [
         ...prev.sideServicesRank,
         {
@@ -48,19 +51,19 @@ const result = data.map((service) => {
   if (solveCustomerClaimsPercentage === 0) feedbackWithClientsDirection = -1;
   if (solveCustomerClaimsPercentage > 0) feedbackWithClientsDirection = 1;
 
-  const name = website.split('.')[0];
-
   return {
     name,
-    pagePath: `/${name}`,
+    pagePath: `/${website}-service`,
     website,
     points,
     sideServicesRank,
     feedbackWithClientsDirection,
     fakeReviews: cheatingDetected,
     forumReviewsDirection: 0,
-    specialties: [],
-    specialized: [],
+    specialized,
+    mainSpecialties: [""],
+    otherSpecialties: [""],
+    description: '',
   }
 });
 

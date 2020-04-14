@@ -1,12 +1,20 @@
 const fs = require('fs');
 const puppeteer = require('puppeteer');
 const _ = require('lodash');
+const moment = require('moment');
 
-const { clickSelectorAndWait, waitRandomTime, logError } = require('./helpers');
+const { clickSelectorAndWait, waitRandomTime, logError, retry } = require('./helpers');
 
 const COORDINATES = '@50.4620394,30.5421353,11z';
 
-const content = fs.readFileSync('results/get-domains-data.json');
+const content = fs.readFileSync('get-domains-data.json');
+let existData;
+try {
+  let existDataJSON = fs.readFileSync('results/google-maps-data-result.json');
+  existData = JSON.parse(existDataJSON).data;
+} catch (e) {
+
+}
 const jsonContent = JSON.parse(content);
 
 console.log(jsonContent);
@@ -40,7 +48,21 @@ const getTextByLabel = async ({ page, label }) => {
   return textWrapper.evaluate(el => el.textContent).catch(logError)
 };
 
-const getCoordinates = async ({ page }) => {
+const getCoordinates = async ({ page, address }) => {
+  await retry(() => page.goto(`https://www.google.com/maps/place/${address}`, {
+    waitUntil: ['load', 'domcontentloaded', 'networkidle0', 'networkidle2']
+  }));
+
+  try {
+    await page.waitForNavigation();
+  } catch (e) {}
+
+  const title = await page.$eval('.section-hero-header-title-title', el => el.textContent).catch(() => {});
+
+  console.log(111, title)
+
+  if (!title) return null;
+
   const url = await page.url();
 
   const arr = url.split('/');
@@ -107,11 +129,11 @@ const scrollToLastComment = async ({ page, prevTitle }) => {
   return reviewsWrappers;
 };
 
-const getReviewsData = async ({ reviewWrappers }) => {
+const getReviewsData = async ({ reviewWrappers, page }) => {
   const reviews = [];
 
   for (const reviewWrapper of reviewWrappers) {
-    const review = await getReviewData({ reviewWrapper });
+    const review = await getReviewData({ reviewWrapper, page });
 
     if (review) {
       reviews.push(review);
@@ -121,18 +143,18 @@ const getReviewsData = async ({ reviewWrappers }) => {
   return reviews;
 };
 
-const getReviewData = async ({ reviewWrapper }) => {
+const getReviewData = async ({ reviewWrapper, page }) => {
   const reviewTooOld = await isReviewTooOld({ reviewWrapper });
 
   if (reviewTooOld) return null;
 
   const metadataItems = await reviewWrapper.$$('.section-review-metadata span');
 
-  await clickSelectorAndWait({ selector: '.section-expand-review', page: reviewWrapper });
+  await clickSelectorAndWait({ selector: '.section-expand-review', page, elem: reviewWrapper });
 
   let titleLink = await reviewWrapper.$eval('.section-review-titles a', el => el.getAttribute('href')).catch(logError);
   let title = await reviewWrapper.$eval('.section-review-titles .section-review-title span', el => el.textContent).catch(logError);
-  let subtitle = await reviewWrapper.$eval('.section-review-titles section-review-subtitle span', el => el.textContent).catch(logError);
+  let subtitle = await reviewWrapper.$eval('.section-review-titles section-review-subtitle span', el => el.textContent).catch(() => {});
   let rank = await metadataItems[1].evaluate(el => el.getAttribute('aria-label')).catch(logError);
   let date = await reviewWrapper.$eval('.section-review-publish-date', el => el.textContent).catch(logError);
   let comment = await reviewWrapper.$eval('.section-review-review-content .section-review-text', el => el ? el.textContent : null).catch(() => {});
@@ -165,7 +187,7 @@ const getReviews = async ({ page }) => {
   const reviewWrappers = await scrollToLastComment({ page });
 
   for (const reviewWrapper of reviewWrappers) {
-    const review = await getReviewData({ reviewWrapper });
+    const review = await getReviewData({ reviewWrapper, page });
 
     if (review) {
       reviews.push(review);
@@ -181,7 +203,7 @@ const getAuthorData = async ({ page, link }) => {
   let profileClosed = false;
 
   await page.bringToFront();
-  await page.goto(link);
+  await retry(() => page.goto(link));
   await waitRandomTime({ page });
 
   await clickSelectorAndWait({ page, selector: 'button[aria-label="Отзывы"]'});
@@ -192,7 +214,7 @@ const getAuthorData = async ({ page, link }) => {
   if (!emptyTitleTag) {
     const reviewWrappers = await scrollToLastComment({ page });
 
-    reviews = await getReviewsData({ reviewWrappers });
+    reviews = await getReviewsData({ reviewWrappers, page });
   } else {
     profileClosed = true;
   }
@@ -213,22 +235,22 @@ const getData = async ({ page, link: websiteLink, page2 }) => {
 
   if (!website || !website.includes(websiteLink)) return null;
 
-      let rate = await page.$eval('.section-star-display', element => element ? element.textContent : '').catch(() => {});
+  let rate = await page.$eval('.section-star-display', element => element ? element.textContent : '').catch(() => {});
   let phone = await getTextByLabel({ page, label: 'Телефон' })
   let address = await getTextByLabel({ page, label: 'Адрес' })
   let workingHours = await getWorkingHours({ page });
-  let coordinates = await getCoordinates({ page });
 
   await waitRandomTime({ page });
 
   let link = await getPointLink({ page });
   let reviews = await getReviews({ page });
 
+  let coordinates = await getCoordinates({ page, address });
 
-  for (let i = 0; i < reviews.length; i++) {
-    const authorData = await getAuthorData({ page: page2, link: reviews[i].titleLink });
-    reviews[i].authorData = authorData;
-  }
+  // for (let i = 0; i < reviews.length; i++) {
+  //   const authorData = await getAuthorData({ page: page2, link: reviews[i].titleLink });
+  //   reviews[i].authorData = authorData;
+  // }
 
 
   return { rate, website, address, website, phone, workingHours, coordinates, link, reviews };
@@ -252,7 +274,7 @@ const processLink = async ({ page, page2, link }) => {
   const url = `https://www.google.com/maps/search/${link}/${COORDINATES}`;
 
   await page.bringToFront();
-  await page.goto(url);
+  await retry(() => page.goto(url));
   await waitRandomTime({ page });
 
   const suggestions = await getSuggestions({ page });
@@ -272,7 +294,7 @@ const processLink = async ({ page, page2, link }) => {
 
       if (suggestions.length > 5 & i > 4 & data.length < suggestions.length) break;
 
-      await page.goto(url);
+      await retry(() => page.goto(url));
 
       await waitRandomTime({ page });
     }
@@ -298,14 +320,20 @@ puppeteer.launch({ headless: false, args: ['--lang=ru-RU'] }).then(async browser
   const data = [];
 
   for (const item of jsonContent) {
+    if (
+      existData &&
+      existData.find(o => o.website === item.website && moment(o.scrappedDate).add(1, 'week').isAfter(moment()))
+    ) continue;
+
     const result = await processLink({ page, page2, link: item.website });
 
     data.push({
       website: item.website,
       points: result.length ? result : [],
+      scrappedDate: moment().format(),
     });
 
-    fs.writeFileSync('google-maps-data-result.json', JSON.stringify(data), 'utf8', () => {});
+    fs.writeFileSync('results/google-maps-data-result.json', JSON.stringify({ data, scrappedDate: moment().format() }), 'utf8', () => {});
   }
 
   await browser.close();

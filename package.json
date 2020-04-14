@@ -6,7 +6,11 @@
     "aggregate-data": "node aggregator.js",
     "cheating-check": "node cheating-check.js",
     "customer-feedback-check": "node customer-feedback-checker.js",
-    "convert-to-result": "node convert-to-result.js"
+    "convert-to-result": "node convert-to-result.js",
+    "get-specialized-data": "node get-specialized-data.js",
+    "get-names-data": "node get-names-data.js",
+    "get-side-forums-data": "node get-side-forums-data.js",
+    "process-data": "yarn aggregate-data && yarn cheating-check && yarn customer-feedback-check && yarn convert-to-result"
   },
   "dependencies": {
     "canvas": "^2.6.1",

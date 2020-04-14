@@ -1,5 +1,6 @@
 const fs = require('fs');
 const moment = require('moment');
+const _ = require('lodash');
 const { PUBLICATION_DATE_FRAMES } = require('./helpers');
 
 const DAYS_DICT = {
@@ -9,7 +10,7 @@ const DAYS_DICT = {
   'четверг': 'thursday',
   'пятница': 'friday',
   'суббота': 'saturday',
-  'воскресение': 'sunday'
+  'воскресенье': 'sunday'
 };
 
 const PUBLICATION_DATE_DICT = {
@@ -44,6 +45,9 @@ const PUBLICATION_DATE_WITHOUT_NUMBERS_DICT = {
 
 const googleMapsData = JSON.parse(fs.readFileSync('./results/google-maps-data-result.json', 'utf8'));
 const vseStoData = JSON.parse(fs.readFileSync('./results/vse-sto-data-result.json', 'utf8'));
+const specializedData = JSON.parse(fs.readFileSync('./results/specialized-data-result.json', 'utf8'));
+const namesData = JSON.parse(fs.readFileSync('./results/names-data.json', 'utf8'));
+const sideForumsData = JSON.parse(fs.readFileSync('./results/side-forums-data.json', 'utf8'));
 
 const convertGoogleMapsWorkingHours = ({ times, day }) => {
   const timeArr = times.map(time => {
@@ -133,13 +137,33 @@ const convertGoogleMapsReview = ({ review, scrappedDate }) => {
   }
 };
 
+const getWorkingHours = ({ workingHours }) => {
+  const daysArr = Object.keys(DAYS_DICT);
+
+  const arr = workingHours
+    .filter(o => !o.times.includes('Закрыто'))
+    .sort((a, b) => daysArr.indexOf(a.day) - daysArr.indexOf(b.day))
+    .map(workingHours => convertGoogleMapsWorkingHours(workingHours));
+
+  const groups = _.groupBy(arr, ({ time }) => {
+    return JSON.stringify(time);
+  });
+
+  return Object.keys(groups).reduce((prev, groupKey) => {
+    const group = groups[groupKey];
+
+    const dayFrame = group.length > 1 ? `${group[0].day}To${_.capitalize(group[group.length - 1].day)}` : group[0].day;
+    const time = group[0].time;
+
+    return [ ...prev, { day: dayFrame, time }]
+  }, []);
+};
+
 const getGoogleMapsData = ({ googleMapsItem, scrappedDate }) => {
   const {
     website,
     points,
   } = googleMapsItem;
-
-  const daysArr = Object.keys(DAYS_DICT);
 
   const googleMapsPoints = points.map(point => {
     const {
@@ -155,10 +179,7 @@ const getGoogleMapsData = ({ googleMapsItem, scrappedDate }) => {
       link,
       phone,
       address,
-      workingHours: point.workingHours
-        .filter(o => !o.times.includes('Закрыто'))
-        .sort((a, b) => daysArr.indexOf(a.day) - daysArr.indexOf(b.day))
-        .map(workingHours => convertGoogleMapsWorkingHours(workingHours)),
+      workingHours: getWorkingHours({ workingHours: point.workingHours }),
       reviews: point.reviews.map(review => convertGoogleMapsReview({ review, scrappedDate }))
     };
   });
@@ -197,12 +218,16 @@ const getVseStoData = ({ vseStoItem }) => {
     website: vseStoItem.website,
     link: vseStoItem.data.link,
     rank: parseFloat(vseStoItem.data.rate),
-    reviews: vseStoItem.data.reviews.map(review => convertVseStoReview({ review }))
+    reviews: vseStoItem.data.reviews.map(review => convertVseStoReview({ review })),
+    title: vseStoItem.data.title,
   }
 };
 
 const result = googleMapsData.data.map(googleMapsItem => {
+  const specializedItem = specializedData.find(o => o.website === googleMapsItem.website);
   const vseStoItem = vseStoData.find(o => o.website === googleMapsItem.website);
+  const namesItem = namesData.find(o => o.website === googleMapsItem.website);
+  const sideForumsItem = sideForumsData.find(o => o.website === googleMapsItem.website);
 
   const convertedGoogleMapsData = getGoogleMapsData({ googleMapsItem, scrappedDate: googleMapsData.date });
 
@@ -210,7 +235,10 @@ const result = googleMapsData.data.map(googleMapsItem => {
 
   return {
     ...convertedGoogleMapsData,
+    ...specializedItem.data,
     vseStoPoint: convertedVseStoData,
+    name: namesItem.name,
+    sideForumsMentions: sideForumsItem.data,
   }
 });
 
