@@ -54,7 +54,7 @@ const getReviews = async ({ page }) => {
 };
 
 const getData = async ({ page, link: websiteLink }) => {
-  await page.bringToFront();
+  // await page.bringToFront();
 
   let website = await page.$eval('.service-info .url', el => el.getAttribute('href')).catch(() => {});
 
@@ -62,10 +62,14 @@ const getData = async ({ page, link: websiteLink }) => {
 
   let title = await page.$eval('h1', element => element.textContent.replace('СТО ', '').trim()).catch(() => {});
   let rate = await page.$eval('.rating', element => element.textContent).catch(() => {});
+  let addressString = await page.$eval('.street-address', element => element.textContent).catch(() => '');
+  let phones = await page.$$eval('.tel', elements => elements.map(el => el.textContent)).catch(() => {});
   let link = await page.url();
   let reviews = await getReviews({ page });
 
-  return { rate, link, reviews, title };
+  const addresses = addressString.split(';');
+
+  return { rate, link, reviews, title, addresses, phones };
 };
 
 const getSuggestionsLinks = async ({ page }) => {
@@ -87,7 +91,7 @@ const processSuggestion = async ({ page, suggestion, link }) => {
 const processLink = async ({ page, link }) => {
   const url = `https://vse-sto.com.ua/search/results/?q=${link}`;
 
-  await page.bringToFront();
+  // await page.bringToFront();
   await retry(() => page.goto(url));
   await waitRandomTime({ page });
 

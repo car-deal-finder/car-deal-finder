@@ -1,12 +1,21 @@
 const fs = require('fs');
 
-const data = JSON.parse(fs.readFileSync('./results/customer-feedback-data.json', 'utf8'));
+const customerFeedback = JSON.parse(fs.readFileSync('./results/customer-feedback-data.json', 'utf8'));
 
-const result = data.map((service) => {
-  const { googleMapsPoints, vseStoPoint, website, solveCustomerClaimsPercentage, cheatingDetected, specialized, name } = service;
+const result = customerFeedback.map((service) => {
+  const {
+    googleMapsPoints,
+    vseStoPoint,
+    website,
+    solveCustomerClaimsPercentage,
+    cheatingDetected,
+    specialized,
+    name,
+    sideForumsMentions
+  } = service;
 
   const {
-    points,
+    points: pointsFromGoogleMaps,
     sideServicesRank
   } = googleMapsPoints.reduce((prev, { phone, address, coordinates, workingHours, link, rank }) => {
     const points = [...prev.points];
@@ -15,7 +24,7 @@ const result = data.map((service) => {
       points.push({
         address,
         coordinates,
-        phone,
+        phones: [phone],
         workingHours,
       });
     }
@@ -32,9 +41,7 @@ const result = data.map((service) => {
       ],
     };
   }, {
-    phones: [],
     points: [],
-    coordinates: [],
     sideServicesRank: []
   });
 
@@ -46,6 +53,16 @@ const result = data.map((service) => {
     });
   }
 
+  let pointsFromVseSto = [];
+
+  if (!pointsFromGoogleMaps.length) {
+    pointsFromVseSto = vseStoPoint.points.reduce((point) => ({
+      ...point,
+      phones: point.phones,
+      workingHours: [],
+    }), pointsFromVseSto)
+  }
+
   let feedbackWithClientsDirection;
   if (solveCustomerClaimsPercentage === null) feedbackWithClientsDirection = 0;
   if (solveCustomerClaimsPercentage === 0) feedbackWithClientsDirection = -1;
@@ -55,7 +72,7 @@ const result = data.map((service) => {
     name,
     pagePath: `/${website}-service`,
     website,
-    points,
+    points: pointsFromGoogleMaps.length ? pointsFromGoogleMaps : pointsFromVseSto,
     sideServicesRank,
     feedbackWithClientsDirection,
     fakeReviews: cheatingDetected,
@@ -64,6 +81,7 @@ const result = data.map((service) => {
     mainSpecialties: [""],
     otherSpecialties: [""],
     description: '',
+    sideForumsMentions,
   }
 });
 

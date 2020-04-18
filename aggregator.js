@@ -48,6 +48,7 @@ const vseStoData = JSON.parse(fs.readFileSync('./results/vse-sto-data-result.jso
 const specializedData = JSON.parse(fs.readFileSync('./results/specialized-data-result.json', 'utf8'));
 const namesData = JSON.parse(fs.readFileSync('./results/names-data.json', 'utf8'));
 const sideForumsData = JSON.parse(fs.readFileSync('./results/side-forums-data.json', 'utf8'));
+const coordinatesData = JSON.parse(fs.readFileSync('./results/coordinates-data.json', 'utf8'));
 
 const convertGoogleMapsWorkingHours = ({ times, day }) => {
   const timeArr = times.map(time => {
@@ -159,7 +160,7 @@ const getWorkingHours = ({ workingHours }) => {
   }, []);
 };
 
-const getGoogleMapsData = ({ googleMapsItem, scrappedDate }) => {
+const getGoogleMapsData = ({ googleMapsItem, coordinates, scrappedDate }) => {
   const {
     website,
     points,
@@ -168,14 +169,13 @@ const getGoogleMapsData = ({ googleMapsItem, scrappedDate }) => {
   const googleMapsPoints = points.map(point => {
     const {
       rate,
-      coordinates,
       link,
       phone,
       address,
     } = point;
     return {
       rank: rate ? parseFloat(rate.replace(',', '.')) : null,
-      coordinates,
+      coordinates: coordinates.find((coordinatesItem) => coordinatesItem.address === address).coordinates,
       link,
       phone,
       address,
@@ -213,13 +213,15 @@ const convertVseStoReview = ({ review }) => {
   };
 };
 
-const getVseStoData = ({ vseStoItem }) => {
+const getVseStoData = ({ vseStoItem, coordinates }) => {
   return {
     website: vseStoItem.website,
     link: vseStoItem.data.link,
     rank: parseFloat(vseStoItem.data.rate),
     reviews: vseStoItem.data.reviews.map(review => convertVseStoReview({ review })),
     title: vseStoItem.data.title,
+    phones: vseStoItem.data.phones,
+    points: coordinates,
   }
 };
 
@@ -228,17 +230,24 @@ const result = googleMapsData.data.map(googleMapsItem => {
   const vseStoItem = vseStoData.find(o => o.website === googleMapsItem.website);
   const namesItem = namesData.find(o => o.website === googleMapsItem.website);
   const sideForumsItem = sideForumsData.find(o => o.website === googleMapsItem.website);
+  const coordinatesItem = coordinatesData.data.find(o => o.website === googleMapsItem.website);
 
-  const convertedGoogleMapsData = getGoogleMapsData({ googleMapsItem, scrappedDate: googleMapsData.date });
-
-  const convertedVseStoData = (vseStoItem && vseStoItem.data) ? getVseStoData({ vseStoItem }) : null;
+  const convertedGoogleMapsData = getGoogleMapsData({ googleMapsItem, coordinates: coordinatesItem.points.googleMapsCoordinates, scrappedDate: googleMapsData.date });
+  const convertedVseStoData = (vseStoItem && vseStoItem.data) ? getVseStoData({ vseStoItem, coordinates: coordinatesItem.vseStoCoordinates }) : null;
 
   return {
     ...convertedGoogleMapsData,
     ...specializedItem.data,
     vseStoPoint: convertedVseStoData,
     name: namesItem.name,
-    sideForumsMentions: sideForumsItem.data,
+    sideForumsMentions: sideForumsItem.data.reduce((prev, next) => {
+      const filteredTextNodes = next.textNodes.filter(({ text, messages }) => text && messages > 50);
+
+      if (!filteredTextNodes) return prev;
+
+      return [ ...prev, { ...next, textNodes: filteredTextNodes } ];
+    }, []),
+    coordinates: coordinatesItem.points,
   }
 });
 

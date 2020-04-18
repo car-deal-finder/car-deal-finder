@@ -48,34 +48,6 @@ const getTextByLabel = async ({ page, label }) => {
   return textWrapper.evaluate(el => el.textContent).catch(logError)
 };
 
-const getCoordinates = async ({ page, address }) => {
-  await retry(() => page.goto(`https://www.google.com/maps/place/${address}`, {
-    waitUntil: ['load', 'domcontentloaded', 'networkidle0', 'networkidle2']
-  }));
-
-  try {
-    await page.waitForNavigation();
-  } catch (e) {}
-
-  const title = await page.$eval('.section-hero-header-title-title', el => el.textContent).catch(() => {});
-
-  console.log(111, title)
-
-  if (!title) return null;
-
-  const url = await page.url();
-
-  const arr = url.split('/');
-
-  const item = arr.find(o => o[0] === '@');
-
-  if (!item) return null;
-
-  const coordinatesArr = item.slice(1).split(',')
-
-  return [coordinatesArr[0], coordinatesArr[1]]
-};
-
 const getPointLink = async ({ page }) => {
   const shareBtn = await page.$('button[aria-label="Поделиться');
   await shareBtn.click({
@@ -226,7 +198,7 @@ const getAuthorData = async ({ page, link }) => {
   };
 };
 
-const getData = async ({ page, link: websiteLink, page2 }) => {
+const getData = async ({ page, link: websiteLink }) => {
   await page.bringToFront();
 
   let website = await getTextByLabel({ page, label: 'Сайт' });
@@ -245,32 +217,30 @@ const getData = async ({ page, link: websiteLink, page2 }) => {
   let link = await getPointLink({ page });
   let reviews = await getReviews({ page });
 
-  let coordinates = await getCoordinates({ page, address });
-
   // for (let i = 0; i < reviews.length; i++) {
   //   const authorData = await getAuthorData({ page: page2, link: reviews[i].titleLink });
   //   reviews[i].authorData = authorData;
   // }
 
 
-  return { rate, website, address, website, phone, workingHours, coordinates, link, reviews };
+  return { rate, website, address, website, phone, workingHours, link, reviews };
 };
 
 const getSuggestions = ({ page }) => {
   return page.$$('.section-result');
 };
 
-const processSuggestion = async ({ page, suggestion, link, page2 }) => {
+const processSuggestion = async ({ page, suggestion, link }) => {
   await suggestion.click({
     delay: _.round(0, 1000),
   });
 
   await waitRandomTime({ page });
 
-  return getData({ page, link, page2 });
+  return getData({ page, link });
 };
 
-const processLink = async ({ page, page2, link }) => {
+const processLink = async ({ page, link }) => {
   const url = `https://www.google.com/maps/search/${link}/${COORDINATES}`;
 
   await page.bringToFront();
@@ -281,7 +251,7 @@ const processLink = async ({ page, page2, link }) => {
   const data = [];
 
   if (!suggestions.length) {
-    const result = await getData({ page, link, page2 });
+    const result = await getData({ page, link });
 
     if (result) data.push(result);
   } else {
@@ -289,7 +259,7 @@ const processLink = async ({ page, page2, link }) => {
       await page.bringToFront();
       const newSuggestions = await getSuggestions({ page });
 
-      const result = await processSuggestion({ page, page2, suggestion: newSuggestions[i], url, link });
+      const result = await processSuggestion({ page, suggestion: newSuggestions[i], url, link });
       if (result) data.push(result);
 
       if (suggestions.length > 5 & i > 4 & data.length < suggestions.length) break;
@@ -312,10 +282,6 @@ puppeteer.launch({ headless: false, args: ['--lang=ru-RU'] }).then(async browser
   await page.setExtraHTTPHeaders({
     'Accept-Language': 'ru_RU',
   });
-  const page2 = await browser.newPage();
-  await page2.setExtraHTTPHeaders({
-    'Accept-Language': 'ru_RU',
-  });
 
   const data = [];
 
@@ -325,7 +291,7 @@ puppeteer.launch({ headless: false, args: ['--lang=ru-RU'] }).then(async browser
       existData.find(o => o.website === item.website && moment(o.scrappedDate).add(1, 'week').isAfter(moment()))
     ) continue;
 
-    const result = await processLink({ page, page2, link: item.website });
+    const result = await processLink({ page, link: item.website });
 
     data.push({
       website: item.website,

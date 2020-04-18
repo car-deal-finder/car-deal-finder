@@ -12,15 +12,6 @@ try {
   existData = JSON.parse(fs.readFileSync('./results/side-forums-data.json', 'utf8'));
 } catch (e) {}
 
-const BROWSER_PATH = './Firefox Nightly.app/Contents/MacOS/firefox';
-
-const SUGGESTIONS_DOMAINS_BLACK_LIST = [
-  // 'vse-sto.com.ua',
-  // 'hotline.ua',
-  // 'cataloxy.com.ua',
-  // 'smv-forum.nl',
-];
-
 const FORUM_KEYWORDS = [
   'club',
   'forum',
@@ -38,23 +29,27 @@ const MIN_REVIEW_WORDS_AMOUNT = 5;
 const MAX_REVIEW_WORDS_AMOUNT = 200;
 const GOOGLE_PAGES_AMOUNT = 2;
 
+const MIN_MATCH_WORD_LENGTH = 5;
+
 const isExistDataItemValid = (existDataItem) => {
   return (
-    existDataItem ||
-    existDataItem.data ||
-    existDataItem.data.length ||
+    existDataItem &&
+    existDataItem.data &&
+    existDataItem.data.length &&
     moment(existDataItem.scrappedDate).add(1, 'week').isAfter(moment())
   );
 };
 
-const filterText = ({ text, website, names }) => {
-  return text.includes(website) || !!names.filter(name => name.length >= 4).find(name => text.includes(name));
+const filterText = ({ text, website, names, websiteFirstPartArr, prevItems }) => {
+  const existedText = prevItems.find(({ text: prevText }) => text.includes(prevText));
+
+  return !existedText && (text.includes(website) || !![ ...names, ...websiteFirstPartArr ].filter(name => name.length >= MIN_MATCH_WORD_LENGTH).find(name => text.toLowerCase().includes(name.toLowerCase())));
 };
 
 const filterSuggestion = async ({ link, website, page }) => {
   const linkDomain = extractHostname(link);
 
-  if (linkDomain === website || SUGGESTIONS_DOMAINS_BLACK_LIST.includes(linkDomain)) return false;
+  if (linkDomain === website) return false;
 
   const siteKeywords = await getSiteKeywords({ page });
 
@@ -79,7 +74,44 @@ const getFullTextOfReview = async ({ node }) => {
   return getFullTextOfReview({ node: parentNode });
 };
 
+const getUserMessagesAmount = async ({ node }) => {
+  if (!node) return null;
+
+  const nodeText = await node.evaluate(elem => elem.innerText);
+
+  const children = await node.$x('child::*');
+
+  const childrenText = [];
+
+  for (const child of children) {
+    const childText = await child.evaluate(el => el.textContent);
+    if (childText) childrenText.push(childText);
+  }
+
+  let foundPhrase;
+
+  const nodePhrase = (nodeText.toLowerCase().match(new RegExp(`[0-9]+`, 'g')) || [])[0];
+
+  if (nodePhrase) foundPhrase = nodePhrase;
+
+  for (const childText of childrenText) {
+    const childPhrase = (childText.toLowerCase().match(new RegExp(`[0-9]+`, 'g')) || [])[0];
+
+    if (childPhrase) foundPhrase = childPhrase;
+  }
+
+  if (foundPhrase) return parseInt(foundPhrase);
+
+  const parentNode = (await node.$x('..'))[0];
+
+  return getUserMessagesAmount({ node: parentNode });
+};
+
 const getUserMessages = async ({ node }) => {
+  if (!node) return null;
+
+  const parentNode = (await node.$x('..'))[0];
+
   let messagesNode;
 
   for (const word of USER_MESSAGES_KEYWORDS) {
@@ -92,23 +124,9 @@ const getUserMessages = async ({ node }) => {
     }
   }
 
-  const text = messagesNode ? (await messagesNode.evaluate(elem => elem.innerText)) : '';
+  if (!messagesNode) return getUserMessages({ node: parentNode });
 
-  let foundPhrases;
-
-  USER_MESSAGES_KEYWORDS.find(word => {
-    const phrases = text.toLowerCase().match(new RegExp(`${word}:\\s*?[0-9]+`, 'g'))
-
-    if (phrases) foundPhrases = phrases;
-  });
-
-  if (foundPhrases) return parseInt(foundPhrases[0].match(/\d+/)[0]);
-
-  const parentNode = (await node.$x('..'))[0];
-
-  if (!parentNode) return null;
-
-  return getUserMessages({ node: parentNode });
+  return getUserMessagesAmount({ node: messagesNode });
 };
 
 const processSuggestion = async ({ name, page, link, website, existDataItem }) => {
@@ -117,10 +135,16 @@ const processSuggestion = async ({ name, page, link, website, existDataItem }) =
   if (isLatin) {
     names = [name, transliterate(name, true)];
   } else {
-    names = [name, transliterate(name)];
+    names = [name, name];
   }
 
-  if (!existDataItem || !isExistDataItemValid(existDataItem)) {
+  const websiteFirstPart = website.split('.')[0];
+  const websiteFirstPartArr = websiteFirstPart.length >= MIN_MATCH_WORD_LENGTH ? [
+    websiteFirstPart,
+    transliterate(websiteFirstPart, true)
+  ]: [];
+
+  // if (!existDataItem || !isExistDataItemValid(existDataItem)) {
     try {
       await page.goto(link);
     } catch (e) {
@@ -131,28 +155,41 @@ const processSuggestion = async ({ name, page, link, website, existDataItem }) =
 
     if (!suggestionIsRelevant) return [];
 
-    const nodes = await Promise.all([
-      ...(await page.$x(`//*[contains(${xPathToLowerCase('text()')}, '${names[0].toLowerCase()}')]`)),
-      ...(await page.$x(`//*[contains(${xPathToLowerCase('text()')}, '${names[1].toLowerCase()}')]`)),
-      ...(await page.$x(`//*[contains(${xPathToLowerCase('text()')}, '${website.toLowerCase()}')]`)),
-    ]).catch(e => {
+    const nodesResult = await Promise.all(
+      [
+        page.$x(`//*[contains(${xPathToLowerCase('text()')}, '${website.toLowerCase()}')]`),
+        ...names.map(name => (
+          page.$x(`//*[contains(${xPathToLowerCase('text()')}, '${name.toLowerCase()}')]`)
+        )),
+        ...websiteFirstPartArr.map(websiteFirstPartArrItem => (
+          page.$x(`//*[contains(${xPathToLowerCase('text()')}, '${websiteFirstPartArrItem.toLowerCase()}')]`)
+        )),
+      ]
+    ).catch(e => {
       console.log(e);
+
       return [];
     });
+
+    const nodes = nodesResult.reduce((prev, next) => [ ...prev, ...next ], []);
 
     const textArrResult = await Promise.all(
       nodes.filter(o => o).map(node => getFullTextOfReview({ node }).then(text => ({ text, node })))
     );
 
-    const textArrResultFiltered = _.uniqBy(textArrResult.filter(({ text }) => filterText({ text, website, names })), 'text');
+    const textArrResultFiltered = _.uniqBy(
+      textArrResult.filter(({ text }, index) => filterText({ text, website, websiteFirstPartArr, names, prevItems: textArrResult.slice(0, index) })),
+      'text'
+    );
 
     return await Promise.all(
       textArrResultFiltered.map(({ node, text, }) => getUserMessages({ node }).then(messages => ({ text, messages })))
     );
-  } else {
-    return existDataItem.data.find(suggestionItem => suggestionItem.link === link).textNodes.filter(({ text }) => filterText({ text, website, names }));
-  }
-}
+  // } else {
+  //   const textNodes = existDataItem.data.find(suggestionItem => suggestionItem.link === link).textNodes;
+  //   return textNodes.filter(({ text }, index) => filterText({ text, website, websiteFirstPartArr, names, prevItems: textNodes.slice(0, index) }));
+  // }
+};
 
 const processPage = async ({ link, page }) => {
   await retry(() => page.goto(link));

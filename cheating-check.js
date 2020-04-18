@@ -110,7 +110,6 @@ const result = aggregatedData.map((item) => {
   return { ...item, cheatingDetected, googleMapsPoints: googleMapsPointsResult };
 });
 
-console.log(result)
 fs.writeFileSync('results/cheating-detected-data.json', JSON.stringify(result), 'utf8', () => {});
 
 // aggregatedData.map((item) => console.log('-----------') || processReviewsByDateFrames({ reviews: item.vseStoPoint ? item.vseStoPoint.reviews : [] }));

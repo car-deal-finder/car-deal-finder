@@ -19,7 +19,7 @@ const retry = (fn, ms = 3000) => new Promise(resolve => {
 });
 
 const waitRandomTime = ({ page }) => {
-  return page.waitFor(_.round(10000, 20000));
+  return page.waitFor(_.round(3000, 10000));
 };
 
 const clickSelectorAndWait = async ({ page, selector, elem, waitForNavigation }) => {
