@@ -17,7 +17,7 @@ const result = customerFeedback.map((service) => {
   const {
     points: pointsFromGoogleMaps,
     sideServicesRank
-  } = googleMapsPoints.reduce((prev, { phone, address, coordinates, workingHours, link, rank }) => {
+  } = googleMapsPoints.reduce((prev, { phone, address, coordinates, workingHours, link, rank, title }) => {
     const points = [...prev.points];
 
     if (!prev.points.find(prevPoint => prevPoint.address === address)) {
@@ -26,6 +26,7 @@ const result = customerFeedback.map((service) => {
         coordinates,
         phones: [phone],
         workingHours,
+        title,
       });
     }
 
@@ -55,18 +56,23 @@ const result = customerFeedback.map((service) => {
 
   let pointsFromVseSto = [];
 
-  if (!pointsFromGoogleMaps.length) {
-    pointsFromVseSto = vseStoPoint.points.reduce((point) => ({
-      ...point,
-      phones: point.phones,
-      workingHours: [],
-    }), pointsFromVseSto)
+  if (!pointsFromGoogleMaps.length && vseStoPoint) {
+    pointsFromVseSto = vseStoPoint.points.map((point) => {
+      return ({
+        ...point,
+        phones: vseStoPoint.phones,
+        title: null,
+        workingHours: [],
+      })
+    }, pointsFromVseSto)
   }
 
   let feedbackWithClientsDirection;
   if (solveCustomerClaimsPercentage === null) feedbackWithClientsDirection = 0;
   if (solveCustomerClaimsPercentage === 0) feedbackWithClientsDirection = -1;
   if (solveCustomerClaimsPercentage > 0) feedbackWithClientsDirection = 1;
+
+  console.log(111, (pointsFromGoogleMaps.length ? pointsFromGoogleMaps : pointsFromVseSto).map( o => o))
 
   return {
     name,

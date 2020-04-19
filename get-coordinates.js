@@ -12,7 +12,9 @@ const domainsData = JSON.parse(fs.readFileSync('./get-domains-data.json', 'utf8'
 let coordinatesData;
 try {
   coordinatesData = JSON.parse(fs.readFileSync('./results/coordinates-data.json', 'utf8'));
-} catch (e) {}
+} catch (e) {
+  coordinatesData = { data: [] };
+}
 
 const getCoordinates = async ({ page, address }) => {
   await retry(() => page.goto(`https://www.google.com/maps/@50.4462503,30.522675,10.95z`));
@@ -34,8 +36,6 @@ const getCoordinates = async ({ page, address }) => {
   await page.keyboard.press('Enter');
 
   await waitRandomTime({ page });
-
-  clickSelectorAndWait({ selector: '.suggest-text-layout', page })
 
   const title = await page.$eval('.section-hero-header-title-title', el => el.textContent).catch(() => {});
 
@@ -84,7 +84,9 @@ puppeteer.launch({ headless: false }).then(async browser => {
   //   'Accept-Language': 'ru_RU',
   // });
 
-  const data = [];
+  const data = [
+    ...coordinatesData.data,
+  ];
 
   for (const item of domainsData) {
     if (
@@ -101,8 +103,6 @@ puppeteer.launch({ headless: false }).then(async browser => {
       points: result,
       scrappedDate: moment().format(),
     };
-
-    console.log(result);
 
     data.push(dataItem);
 

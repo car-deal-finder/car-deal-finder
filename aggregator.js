@@ -166,23 +166,33 @@ const getGoogleMapsData = ({ googleMapsItem, coordinates, scrappedDate }) => {
     points,
   } = googleMapsItem;
 
-  const googleMapsPoints = points.map(point => {
+  const googleMapsPoints = points.reduce((prev, point) => {
     const {
       rate,
       link,
       phone,
       address,
+      title,
     } = point;
-    return {
-      rank: rate ? parseFloat(rate.replace(',', '.')) : null,
-      coordinates: coordinates.find((coordinatesItem) => coordinatesItem.address === address).coordinates,
-      link,
-      phone,
-      address,
-      workingHours: getWorkingHours({ workingHours: point.workingHours }),
-      reviews: point.reviews.map(review => convertGoogleMapsReview({ review, scrappedDate }))
-    };
-  });
+
+    const coordinatesFound = coordinates.find((coordinatesItem) => coordinatesItem.address === address);
+
+    if (!coordinatesFound) return prev;
+
+    return [
+      ...prev,
+      {
+        rank: rate ? parseFloat(rate.replace(',', '.')) : null,
+        coordinates: coordinates.find((coordinatesItem) => coordinatesItem.address === address).coordinates,
+        link,
+        phone,
+        title,
+        address,
+        workingHours: getWorkingHours({ workingHours: point.workingHours }),
+        reviews: point.reviews.map(review => convertGoogleMapsReview({ review, scrappedDate }))
+      }
+    ];
+  }, []);
 
   return {
     googleMapsPoints,
@@ -220,7 +230,7 @@ const getVseStoData = ({ vseStoItem, coordinates }) => {
     rank: parseFloat(vseStoItem.data.rate),
     reviews: vseStoItem.data.reviews.map(review => convertVseStoReview({ review })),
     title: vseStoItem.data.title,
-    phones: vseStoItem.data.phones,
+    phones: vseStoItem.data.phones.reduce((prev, phone) => [ ...prev, ...phone.split(/[,;.]/)], []),
     points: coordinates,
   }
 };
@@ -233,8 +243,7 @@ const result = googleMapsData.data.map(googleMapsItem => {
   const coordinatesItem = coordinatesData.data.find(o => o.website === googleMapsItem.website);
 
   const convertedGoogleMapsData = getGoogleMapsData({ googleMapsItem, coordinates: coordinatesItem.points.googleMapsCoordinates, scrappedDate: googleMapsData.date });
-  const convertedVseStoData = (vseStoItem && vseStoItem.data) ? getVseStoData({ vseStoItem, coordinates: coordinatesItem.vseStoCoordinates }) : null;
-
+  const convertedVseStoData = (vseStoItem && vseStoItem.data) ? getVseStoData({ vseStoItem, coordinates: coordinatesItem.points.vseStoCoordinates }) : null;
   return {
     ...convertedGoogleMapsData,
     ...specializedItem.data,

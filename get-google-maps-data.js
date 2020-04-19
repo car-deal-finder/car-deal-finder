@@ -17,16 +17,15 @@ try {
 }
 const jsonContent = JSON.parse(content);
 
-console.log(jsonContent);
+// console.log(jsonContent);
 
 const getWorkingHours = async ({ page }) => {
   const days = [];
 
   let wrappers = await page.$$('.widget-pane-info-open-hours-row-table-hoverable tr');
-
   for (const wrapper of wrappers) {
-    const day = await wrapper.$eval('.widget-pane-info-open-hours-row-header div', el => el.textContent).catch(logError);
-    const times = await wrapper.$$eval('.widget-pane-info-open-hours-row-data li', elems => elems.map((el) => el.textContent)).catch(logError);
+    const day = await wrapper.$eval('th div', el => el.textContent).catch(logError);
+    const times = await wrapper.$$eval('td div div', elems => elems.map((el) => el.textContent)).catch(logError);
 
     days.push({ day, times });
   }
@@ -34,9 +33,18 @@ const getWorkingHours = async ({ page }) => {
   return days;
 };
 
-const getTextByLabel = async ({ page, label }) => {
-  let icon = await page.$(`.section-info.section-info-hoverable span[aria-label="${label}"]`);
-  if (!icon) icon = await page.$(`.section-info.section-info-hoverable div[data-tooltip="${label}"]`);
+const getTextByLabel = async ({ page, labels }) => {
+  let icon;
+
+  for (let label of labels) {
+    let found = await page.$(`.section-info.section-info-hoverable span[aria-label="${label}"]`);
+    if (!found) found = await page.$(`.section-info.section-info-hoverable div[data-tooltip="${label}"]`);
+
+    if (found) {
+      icon = found;
+      break;
+    }
+  }
 
   if (!icon) return null;
 
@@ -174,7 +182,7 @@ const getAuthorData = async ({ page, link }) => {
   let level;
   let profileClosed = false;
 
-  await page.bringToFront();
+  // await page.bringToFront();
   await retry(() => page.goto(link));
   await waitRandomTime({ page });
 
@@ -199,17 +207,17 @@ const getAuthorData = async ({ page, link }) => {
 };
 
 const getData = async ({ page, link: websiteLink }) => {
-  await page.bringToFront();
+  // await page.bringToFront();
 
-  let website = await getTextByLabel({ page, label: 'Сайт' });
+  let website = await getTextByLabel({ page, labels: ['Перейти на сайт', 'Сайт'] });
 
-  if (!website || website === 'Добавить сайт') website = await getTextByLabel({ page, label: 'Открыть ссылку для бронирования' })
-
+  if (!website || website === 'Добавить сайт') website = await getTextByLabel({ page, labels: ['Открыть ссылку для резервирования', 'Открыть ссылку для бронирования'] });
   if (!website || !website.includes(websiteLink)) return null;
 
-  let rate = await page.$eval('.section-star-display', element => element ? element.textContent : '').catch(() => {});
-  let phone = await getTextByLabel({ page, label: 'Телефон' })
-  let address = await getTextByLabel({ page, label: 'Адрес' })
+  const title = await page.$eval('.section-hero-header-title-title', el => el.textContent).catch(() => {});
+  let rate = await page.$eval('.section-star-display', element => element.textContent).catch(() => {});
+  let phone = await getTextByLabel({ page, labels: ['Скопировать номер', 'Телефон'] });
+  let address = await getTextByLabel({ page, labels: ['Скопировать адрес', 'Адрес'] });
   let workingHours = await getWorkingHours({ page });
 
   await waitRandomTime({ page });
@@ -223,7 +231,7 @@ const getData = async ({ page, link: websiteLink }) => {
   // }
 
 
-  return { rate, website, address, website, phone, workingHours, link, reviews };
+  return { rate, website, address, website, phone, workingHours, link, reviews, title };
 };
 
 const getSuggestions = ({ page }) => {
@@ -243,7 +251,7 @@ const processSuggestion = async ({ page, suggestion, link }) => {
 const processLink = async ({ page, link }) => {
   const url = `https://www.google.com/maps/search/${link}/${COORDINATES}`;
 
-  await page.bringToFront();
+  // await page.bringToFront();
   await retry(() => page.goto(url));
   await waitRandomTime({ page });
 
@@ -256,7 +264,7 @@ const processLink = async ({ page, link }) => {
     if (result) data.push(result);
   } else {
     for (let i = 0; i < suggestions.length; i++) {
-      await page.bringToFront();
+      // await page.bringToFront();
       const newSuggestions = await getSuggestions({ page });
 
       const result = await processSuggestion({ page, suggestion: newSuggestions[i], url, link });
@@ -270,8 +278,6 @@ const processLink = async ({ page, link }) => {
     }
   }
 
-  console.log(data);
-
   await waitRandomTime({ page });
 
   return data;
@@ -283,21 +289,49 @@ puppeteer.launch({ headless: false, args: ['--lang=ru-RU'] }).then(async browser
     'Accept-Language': 'ru_RU',
   });
 
-  const data = [];
+  const data = [
+    ...(existData || [])
+  ];
 
   for (const item of jsonContent) {
+    const existDataItemIndex = existData.findIndex(o => o.website === item.website);
+    const existDataItem = existData[existDataItemIndex];
+
+
+    if (existDataItem) {
+      const newDataItem = {
+        ...existDataItem,
+      };
+      for (const point of newDataItem.points) {
+        await retry(() => page.goto(point.link));
+        await waitRandomTime({ page });
+
+        const workingHours = await getWorkingHours({ page });
+
+        point.workingHours = workingHours;
+      }
+
+      data[existDataItemIndex] = newDataItem;
+
+      fs.writeFileSync('results/google-maps-data-result.json', JSON.stringify({ data, scrappedDate: moment().format() }), 'utf8', () => {});
+    }
+
     if (
       existData &&
-      existData.find(o => o.website === item.website && moment(o.scrappedDate).add(1, 'week').isAfter(moment()))
+      moment(existDataItem.scrappedDate).add(1, 'week').isAfter(moment())
     ) continue;
 
     const result = await processLink({ page, link: item.website });
 
-    data.push({
+    const dataItem = {
       website: item.website,
       points: result.length ? result : [],
       scrappedDate: moment().format(),
-    });
+    };
+
+    console.log(dataItem);
+
+    data.push(dataItem);
 
     fs.writeFileSync('results/google-maps-data-result.json', JSON.stringify({ data, scrappedDate: moment().format() }), 'utf8', () => {});
   }
