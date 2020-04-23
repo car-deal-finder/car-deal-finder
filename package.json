@@ -11,6 +11,7 @@
     "get-names-data": "node get-names-data.js",
     "get-side-forums-data": "node get-side-forums-data.js",
     "get-coordinates": "node get-coordinates.js",
+    "aggregate-services": "node aggregate-services.js",
     "process-data": "yarn aggregate-data && yarn cheating-check && yarn customer-feedback-check && yarn convert-to-result"
   },
   "dependencies": {

@@ -49,6 +49,7 @@ const specializedData = JSON.parse(fs.readFileSync('./results/specialized-data-r
 const namesData = JSON.parse(fs.readFileSync('./results/names-data.json', 'utf8'));
 const sideForumsData = JSON.parse(fs.readFileSync('./results/side-forums-data.json', 'utf8'));
 const coordinatesData = JSON.parse(fs.readFileSync('./results/coordinates-data.json', 'utf8'));
+const servicesMap = JSON.parse(fs.readFileSync('./results/services-map.json', 'utf8'));
 
 const convertGoogleMapsWorkingHours = ({ times, day }) => {
   const timeArr = times.map(time => {
@@ -227,7 +228,7 @@ const getVseStoData = ({ vseStoItem, coordinates }) => {
   return {
     website: vseStoItem.website,
     link: vseStoItem.data.link,
-    rank: parseFloat(vseStoItem.data.rate),
+    rank: vseStoItem.data.reviews.length ? parseFloat(vseStoItem.data.rate) : null,
     reviews: vseStoItem.data.reviews.map(review => convertVseStoReview({ review })),
     title: vseStoItem.data.title,
     phones: vseStoItem.data.phones.reduce((prev, phone) => [ ...prev, ...phone.split(/[,;.]/)], []),
@@ -241,6 +242,7 @@ const result = googleMapsData.data.map(googleMapsItem => {
   const namesItem = namesData.find(o => o.website === googleMapsItem.website);
   const sideForumsItem = sideForumsData.find(o => o.website === googleMapsItem.website);
   const coordinatesItem = coordinatesData.data.find(o => o.website === googleMapsItem.website);
+  const servicesMapItem = servicesMap[googleMapsItem.website];
 
   const convertedGoogleMapsData = getGoogleMapsData({ googleMapsItem, coordinates: coordinatesItem.points.googleMapsCoordinates, scrappedDate: googleMapsData.date });
   const convertedVseStoData = (vseStoItem && vseStoItem.data) ? getVseStoData({ vseStoItem, coordinates: coordinatesItem.points.vseStoCoordinates }) : null;
@@ -257,6 +259,7 @@ const result = googleMapsData.data.map(googleMapsItem => {
       return [ ...prev, { ...next, textNodes: filteredTextNodes } ];
     }, []),
     coordinates: coordinatesItem.points,
+    specialties: servicesMapItem,
   }
 });
 

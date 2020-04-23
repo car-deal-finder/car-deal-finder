@@ -11,13 +11,14 @@ const result = customerFeedback.map((service) => {
     cheatingDetected,
     specialized,
     name,
-    sideForumsMentions
+    sideForumsMentions,
+    specialties,
   } = service;
 
   const {
     points: pointsFromGoogleMaps,
     sideServicesRank
-  } = googleMapsPoints.reduce((prev, { phone, address, coordinates, workingHours, link, rank, title }) => {
+  } = googleMapsPoints.reduce((prev, { phone, address, coordinates, workingHours, link, rank, title, reviews }) => {
     const points = [...prev.points];
 
     if (!prev.points.find(prevPoint => prevPoint.address === address)) {
@@ -26,7 +27,7 @@ const result = customerFeedback.map((service) => {
         coordinates,
         phones: [phone],
         workingHours,
-        title,
+        title: title ? title : undefined,
       });
     }
 
@@ -37,7 +38,8 @@ const result = customerFeedback.map((service) => {
         {
           name: 'Google Maps',
           link,
-          rank,
+          rank: rank ? rank.toString() : undefined,
+          reviewsAmount: reviews.length,
         },
       ],
     };
@@ -50,7 +52,8 @@ const result = customerFeedback.map((service) => {
     sideServicesRank.push({
       name: 'Vse STO',
       link: vseStoPoint.link,
-      rank: vseStoPoint.rank,
+      rank: vseStoPoint.rank ? vseStoPoint.rank.toString() : undefined,
+      reviewsAmount: vseStoPoint.reviews.length,
     });
   }
 
@@ -61,18 +64,16 @@ const result = customerFeedback.map((service) => {
       return ({
         ...point,
         phones: vseStoPoint.phones,
-        title: null,
+        title: undefined,
         workingHours: [],
       })
     }, pointsFromVseSto)
   }
 
   let feedbackWithClientsDirection;
-  if (solveCustomerClaimsPercentage === null) feedbackWithClientsDirection = 0;
-  if (solveCustomerClaimsPercentage === 0) feedbackWithClientsDirection = -1;
-  if (solveCustomerClaimsPercentage > 0) feedbackWithClientsDirection = 1;
-
-  console.log(111, (pointsFromGoogleMaps.length ? pointsFromGoogleMaps : pointsFromVseSto).map( o => o))
+  if (solveCustomerClaimsPercentage === null) feedbackWithClientsDirection = -1;
+  if (solveCustomerClaimsPercentage === 0) feedbackWithClientsDirection = 0;
+  if (solveCustomerClaimsPercentage > 0) feedbackWithClientsDirection = 2;
 
   return {
     name,
@@ -81,14 +82,14 @@ const result = customerFeedback.map((service) => {
     points: pointsFromGoogleMaps.length ? pointsFromGoogleMaps : pointsFromVseSto,
     sideServicesRank,
     feedbackWithClientsDirection,
+    solveCustomerClaimsPercentage: solveCustomerClaimsPercentage !== null ? solveCustomerClaimsPercentage : -1,
     fakeReviews: cheatingDetected,
     forumReviewsDirection: 0,
     specialized,
-    mainSpecialties: [""],
-    otherSpecialties: [""],
+    specialties: specialties || [],
     description: '',
     sideForumsMentions,
   }
 });
 
-fs.writeFileSync('results/result.json', JSON.stringify(result), 'utf8', () => {});
+fs.writeFileSync('results/result.json', JSON.stringify({ list: result }), 'utf8', () => {});

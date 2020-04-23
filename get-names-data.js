@@ -7,8 +7,10 @@ const vseStoData = JSON.parse(vseStoDataJson);
 const result = vseStoData.map(({ website, data }) => {
   let name;
 
-  if (data && data.title) {
-    name = data.title.replace('СТО', '').trim();
+  const vseStoTitle = data && data.title && data.title.replace('СТО', '').trim();
+
+  if (vseStoTitle) {
+    name = vseStoTitle;
   } else {
     name = _.capitalize(website.split('.')[0].replace('-', ' '));
   }

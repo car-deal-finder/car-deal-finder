@@ -52,38 +52,50 @@ const processReviews = ({ reviews }) => {
 };
 
 const result = data.map((service) => {
-  let solveCustomerClaimsPercentage = null;
+  let solveCustomerClaimsPercentage = 0;
+  let pointsCounter = 0;
 
   const googleMapsPointsResult = service.googleMapsPoints.map((point) => {
     const { reviews } = point;
     const { processedReviews, percentage } = processReviews({ reviews });
 
-    if (percentage !== null) solveCustomerClaimsPercentage = (
-      (solveCustomerClaimsPercentage === null ? percentage : solveCustomerClaimsPercentage) + percentage
-    ) / 2;
 
-    return { ...point, reviews: processedReviews, solveCustomerClaimsPercentage: percentage };
+    if (percentage !== null) {
+      solveCustomerClaimsPercentage += percentage;
+      pointsCounter += 1;
+    }
+
+    return { ...point, reviews: processedReviews, solveCustomerClaimsPercentage: Math.round(percentage) };
   });
 
-  return { ...service, googleMapsPoints: googleMapsPointsResult, solveCustomerClaimsPercentage };
+  let vseStoProcessedReviews;
+  let vseStoPercentage;
+
+  if (service.vseStoPoint) {
+    const { reviews } = service.vseStoPoint;
+    const { processedReviews, percentage } = processReviews({ reviews });
+
+    vseStoPercentage = percentage;
+    vseStoProcessedReviews = processedReviews;
+
+    if (percentage !== null) {
+      solveCustomerClaimsPercentage += percentage;
+      pointsCounter += 1;
+    }
+  }
+
+  return {
+    ...service,
+    googleMapsPoints: googleMapsPointsResult,
+    vseStoPoint: service.vseStoPoint ? ({
+      ...service.vseStoPoint,
+      reviews: vseStoProcessedReviews,
+      solveCustomerClaimsPercentage: vseStoPercentage !== null ? Math.round(vseStoPercentage) : null,
+    }) : null,
+    solveCustomerClaimsPercentage: pointsCounter === 0 ? null : Math.round(solveCustomerClaimsPercentage / pointsCounter),
+  }
 });
 
-const shortResult = result.reduce((prev, service) => {
-  const { solveCustomerClaimsPercentage, googleMapsPoints } = service;
 
-  if (solveCustomerClaimsPercentage === null) return prev;
 
-  return [
-    ...prev,
-    {
-      ...service,
-      googleMapsPoints: googleMapsPoints.map(point => ({
-        ...point,
-        reviews: point.reviews.filter(review => review.rank <= NEGATIVE_RANK_TRESHOLD && review.comment)
-      }))
-    },
-  ]
-}, []);
-
-fs.writeFileSync('results/customer-feedback-data-short.json', JSON.stringify(shortResult), 'utf8', () => {});
 fs.writeFileSync('results/customer-feedback-data.json', JSON.stringify(result), 'utf8', () => {});

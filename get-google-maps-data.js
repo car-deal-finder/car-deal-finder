@@ -15,6 +15,7 @@ try {
 } catch (e) {
 
 }
+
 const jsonContent = JSON.parse(content);
 
 // console.log(jsonContent);
@@ -86,12 +87,7 @@ const scrollToLastComment = async ({ page, prevTitle }) => {
 
   let lastReviewsWrapper = reviewsWrappers[reviewsWrappers.length - 1];
 
-  let lastReviewsWrapperBtn = await lastReviewsWrapper.$('.section-review-interaction-icon');
-  let lastReviewsWrapperMetadata = await lastReviewsWrapper.$('.section-review-metadata');
-
-  if (!lastReviewsWrapperBtn && !lastReviewsWrapperMetadata) return reviewsWrappers;
-
-  await (lastReviewsWrapperBtn || lastReviewsWrapperMetadata).hover();
+  await page.$eval('.section-scrollbox', elem => elem.scroll(0, 9999999999999999));
   await waitRandomTime({ page });
 
   reviewsWrappers = await page.$$('.section-review.ripple-container');
@@ -306,9 +302,9 @@ puppeteer.launch({ headless: false, args: ['--lang=ru-RU'] }).then(async browser
         await retry(() => page.goto(point.link));
         await waitRandomTime({ page });
 
-        const workingHours = await getWorkingHours({ page });
+        const reviews = await getReviews({ page });
 
-        point.workingHours = workingHours;
+        point.reviews = reviews;
       }
 
       data[existDataItemIndex] = newDataItem;
@@ -317,7 +313,7 @@ puppeteer.launch({ headless: false, args: ['--lang=ru-RU'] }).then(async browser
     }
 
     if (
-      existData &&
+      existData && existDataItem &&
       moment(existDataItem.scrappedDate).add(1, 'week').isAfter(moment())
     ) continue;
 
