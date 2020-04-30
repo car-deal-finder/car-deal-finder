@@ -8,9 +8,10 @@ const result = servicesList.reduce((prev, next) => {
   Object.keys(next).forEach(key => {
     if (!prev[key]) prev[key] = [];
 
-    prev[key].push(next[key]);
-  });
+    const string = next[key];
 
+    if (string) prev[key].push(string);
+  });
 
   return prev;
 }, {});

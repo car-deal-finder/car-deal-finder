@@ -92,4 +92,4 @@ const result = customerFeedback.map((service) => {
   }
 });
 
-fs.writeFileSync('results/result.json', JSON.stringify({ list: result }), 'utf8', () => {});
+fs.writeFileSync('results/client-format.json', JSON.stringify(result), 'utf8', () => {});

@@ -6,13 +6,14 @@
     "aggregate-data": "node aggregator.js",
     "cheating-check": "node cheating-check.js",
     "customer-feedback-check": "node customer-feedback-checker.js",
-    "convert-to-result": "node convert-to-result.js",
+    "convert-to-client-format": "node convert-to-client-format.js",
     "get-specialized-data": "node get-specialized-data.js",
     "get-names-data": "node get-names-data.js",
     "get-side-forums-data": "node get-side-forums-data.js",
     "get-coordinates": "node get-coordinates.js",
+    "calc-rank": "node calc-rank.js",
     "aggregate-services": "node aggregate-services.js",
-    "process-data": "yarn aggregate-data && yarn cheating-check && yarn customer-feedback-check && yarn convert-to-result"
+    "process-data": "yarn aggregate-data && yarn cheating-check && yarn customer-feedback-check && yarn convert-to-client-format && yarn calc-rank"
   },
   "dependencies": {
     "canvas": "^2.6.1",
