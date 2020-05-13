@@ -4,7 +4,7 @@ const data = JSON.parse(fs.readFileSync('./results/client-format.json', 'utf8'))
 
 const MAX_RANK = 5;
 const MIN_RANK = 1;
-const MIN_REVIEWS_AMOUNT = 15;
+const MIN_REVIEWS_AMOUNT = 3;
 const INCOMPLETED_COEFFICIENT_TRESHOLD = 0.7;
 
 const directionToRankMap = {
@@ -23,11 +23,11 @@ const requiredSideServicesRank = [
 ];
 
 const getRequiredSideServicesRankNotFound = ({ sideServicesRank }) => {
-  return requiredSideServicesRank.filter(o => !sideServicesRank.map(o => o.name).includes(o));
+  return requiredSideServicesRank.filter(o => !sideServicesRank.filter(o => o.reviewsAmount).map(o => o.name).includes(o));
 }
 
 const isReviewsAmountTooLow = ({ sideServicesRank }) => {
-  return !!sideServicesRank.find(({ reviewsAmount }) => reviewsAmount < MIN_REVIEWS_AMOUNT);
+  return sideServicesRank.reduce((prev, next) => prev + next.reviewsAmount, 0) < MIN_REVIEWS_AMOUNT;
 }
 
 const calcSolveCustomerClaimsPercentage = ({ percentage }) => {
@@ -42,22 +42,18 @@ const calcIncomopleteCoefficient = ({ feedbackWithClientsDirection, forumReviews
   let incomopleteCoefficient = 1;
   const requiredSideServicesRankNotFound = getRequiredSideServicesRankNotFound({ sideServicesRank });
 
-  if (requiredSideServicesRankNotFound) {
+  if (requiredSideServicesRankNotFound && sideServicesRank.length === requiredSideServicesRankNotFound.length) {
     incomopleteCoefficient -= 0.1 * requiredSideServicesRankNotFound.length
-  }
-
-  if (feedbackWithClientsDirection === -1) {
-    incomopleteCoefficient -= 0.1;
   }
 
   const reviewsAmountTooLow = isReviewsAmountTooLow({ sideServicesRank });
 
   if (reviewsAmountTooLow) {
-    incomopleteCoefficient -= 0.2;
+    incomopleteCoefficient -= 1;
   }
 
-  if (!sideServicesRank.length) {
-    incomopleteCoefficient -= 1;
+  if (feedbackWithClientsDirection === -1) {
+    incomopleteCoefficient -= 0.1;
   }
 
   // if (forumReviewsDirection === -1) {
