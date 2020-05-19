@@ -246,6 +246,7 @@ const result = googleMapsData.data.map(googleMapsItem => {
 
   const convertedGoogleMapsData = getGoogleMapsData({ googleMapsItem, coordinates: coordinatesItem.points.googleMapsCoordinates, scrappedDate: googleMapsData.date });
   const convertedVseStoData = (vseStoItem && vseStoItem.data) ? getVseStoData({ vseStoItem, coordinates: coordinatesItem.points.vseStoCoordinates }) : null;
+
   return {
     ...convertedGoogleMapsData,
     ...specializedItem.data,

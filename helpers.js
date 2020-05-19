@@ -90,7 +90,7 @@ const isNotLatin = (string) => {
 };
 
 const getSiteKeywords = async ({ page }) => {
-  siteKeywords = await Promise.all([
+  const siteKeywords = await Promise.all([
     await page.$eval('head title', el => el.textContent).catch(() => {}),
     await page.$eval('head meta[name="description"]', el => el.getAttribute('content')).catch(() => {}),
     await page.$eval('head meta[name="keywords"]', el => el.getAttribute('content')).catch(() => {}),
@@ -105,6 +105,7 @@ function countWords(str) {
 
 const xPathToLowerCase = (content) => `translate(${content}, 'ABCDEFGHIJKLMNOPQRSTUVWXYZАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ', 'abcdefghijklmnopqrstuvwxyzабвгдеёжзийклмнопрстуфхцчшщъыьэюя')`;
 
+
 module.exports = {
   waitRandomTime,
   clickSelectorAndWait,
@@ -117,6 +118,6 @@ module.exports = {
   isNotLatin,
   getSiteKeywords,
   countWords,
-  xPathToLowerCase
+  xPathToLowerCase,
 };
 

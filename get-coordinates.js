@@ -1,9 +1,9 @@
 const fs = require('fs');
 const puppeteer = require('puppeteer');
 const moment = require('moment');
-const clipboardy = require('clipboardy');
+const _ = require('lodash');
 
-const { retry, waitRandomTime, clickSelectorAndWait } = require('./helpers');
+const { retry, waitRandomTime } = require('./helpers');
 
 const vseStoData = JSON.parse(fs.readFileSync('./results/vse-sto-data-result.json', 'utf8'));
 const googleMapsData = JSON.parse(fs.readFileSync('./results/google-maps-data-result.json', 'utf8'));
@@ -89,13 +89,16 @@ puppeteer.launch({ headless: false }).then(async browser => {
   ];
 
   for (const item of domainsData) {
-    if (
-      coordinatesData &&
-      coordinatesData.data.find(o => o.website === item.website && moment(o.scrappedDate).add(1, 'week').isAfter(moment()))
-    ) continue;
-
+    const existItem = coordinatesData.data.find(o => o.website === item.website);
     const googleMapsItem = googleMapsData.data.find(({ website }) => website === item.website);
     const vseStoItem = vseStoData.find(({ website }) => website === item.website);
+
+    if (
+      coordinatesData &&
+      existItem &&
+      googleMapsItem.points.length === existItem.points.googleMapsCoordinates.filter(o => o.coordinates).length &&
+      googleMapsItem.points.length === existItem.points.vseStoCoordinates.filter(o => o.coordinates).length
+    ) continue;
 
     const result = await processItem({ page, googleMapsItem, vseStoItem });
     const dataItem = {
@@ -104,7 +107,12 @@ puppeteer.launch({ headless: false }).then(async browser => {
       scrappedDate: moment().format(),
     };
 
-    data.push(dataItem);
+    if (!existItem) {
+      data.push(dataItem);
+    } else {
+      _.assign(existItem, dataItem);
+    }
+
 
     fs.writeFileSync('results/coordinates-data.json', JSON.stringify({ data, scrappedDate: moment().format() }), 'utf8', () => {});
   }

@@ -64,13 +64,13 @@ const calcIncomopleteCoefficient = ({ feedbackWithClientsDirection, forumReviews
 };
 
 
-const calcRank = ({ fakeReviews, feedbackWithClientsDirection, forumReviewsDirection, solveCustomerClaimsPercentage, sideServicesRank }) => {
+const calcRank = ({ fakeReviews, feedbackWithClientsDirection, forumReviewsDirection, solveCustomerClaimsPercentage, sideServicesRank, website }) => {
   let sideServicesRankFiltered = sideServicesRank.filter(o => o.rank != null);
   let parameterCount = sideServicesRankFiltered.length;
 
-  let rank = sideServicesRankFiltered.map(o => parseInt(o.rank)).reduce((prev, next) => prev + next, 0);
+  let rank = sideServicesRankFiltered.map(o => parseFloat(o.rank)).reduce((prev, next) => prev + next, 0);
 
-  if (solveCustomerClaimsPercentage !== -1) {
+  if (solveCustomerClaimsPercentage !== -1 && sideServicesRank.find(o => o.rank < 4)) {
     let percentage = calcSolveCustomerClaimsPercentage({ percentage: solveCustomerClaimsPercentage });
 
     rank += MAX_RANK * ((percentage || 1) / 100);
@@ -82,13 +82,10 @@ const calcRank = ({ fakeReviews, feedbackWithClientsDirection, forumReviewsDirec
   //   parameterCount++
   // }
 
-  const requiredSideServicesRankNotFound = getRequiredSideServicesRankNotFound({ sideServicesRank: sideServicesRankFiltered });
-  if (requiredSideServicesRankNotFound.length < requiredSideServicesRank.length) {
+  if (fakeReviews) {
     rank += booleanToRankMap[(!fakeReviews).toString()];
-  } else {
-    rank += directionToRankMap['-1'];
+    parameterCount++;
   }
-  parameterCount++;
 
   return (rank / parameterCount).toFixed(1);
 };
@@ -99,7 +96,8 @@ const result = data.map((service) => {
     feedbackWithClientsDirection,
     forumReviewsDirection,
     solveCustomerClaimsPercentage,
-    sideServicesRank
+    sideServicesRank,
+    website
   } = service;
 
   const rank = calcRank({
@@ -108,6 +106,7 @@ const result = data.map((service) => {
     solveCustomerClaimsPercentage,
     forumReviewsDirection,
     sideServicesRank,
+    website
   });
   const incomopleteCoefficient = calcIncomopleteCoefficient({ feedbackWithClientsDirection, forumReviewsDirection, sideServicesRank });
   const incomplete = incomopleteCoefficient <= INCOMPLETED_COEFFICIENT_TRESHOLD;
