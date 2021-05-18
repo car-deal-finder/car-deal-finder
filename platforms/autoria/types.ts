@@ -3,6 +3,6 @@ import { CarData } from "../../parser/types";
 export interface PriceStatistic {
     pageLink: string;
     prices: number[];
-    isPriceLow: boolean;
+    priceType: 'low' | 'lowest' | 'high';
     carData: CarData;
 }

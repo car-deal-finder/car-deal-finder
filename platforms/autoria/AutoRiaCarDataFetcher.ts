@@ -16,11 +16,11 @@ export default class AutoRiaCarDataFetcher extends CarDataFetcher {
     async parseTitle(title: string) {
         const allBrands = await this.autoRiaPlatformDataFetcher.getAllBrands();
 
-        const brand = allBrands.find(o => title.includes(o));
+        const brand = allBrands.find(o => title.includes(o.split('_')[0]));
         
-        const allModels = await this.autoRiaPlatformDataFetcher.getAllModels(brand);
+        const allModels = await this.autoRiaPlatformDataFetcher.getAllModels(brand.split('_')[0]);
 
-        const models = allModels.filter(o => title.includes(o));
+        const models = allModels.filter(o => title.includes(o.split('_')[0]));
 
         const model = _.sortBy(models, 'length')[models.length - 1];
 

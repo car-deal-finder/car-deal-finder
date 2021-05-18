@@ -1,6 +1,6 @@
 export interface Log {
     link: string;
     processedAt: string;
-    success: boolean;
-    retriesAmount: number;
+    success: string;
+    retriesAmount: string;
 }

@@ -1,86 +1,50 @@
+import { throttle } from "lodash";
 import { Page } from "puppeteer";
 import Notificator from "../../notificator";
 import { TRANSMISSION_TYPE } from "../../parser/constants";
 import { CarData, PriceStatisticFetcher } from "../../parser/types";
 import { AUTORIA_FUEL_TYPE, AUTORIA_TRANSMISSION_TYPE } from "./constants";
+import { PriceStatistic } from "./types";
 
 const ticketSelector = '#searchResults .ticket-item:not(.hide)';
 
 export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher {
     async selectCheckbox(value: string, namesMap: object, blockSelector: string) {
-        await this.page.click(`${blockSelector} .el-selected.open`);
-
         const autoriaName = namesMap[value];
 
         const labels = await this.page.$$(`${blockSelector} .item-checkbox label`);
 
+        const result = [];
+
         for (let i = 0; i < labels.length; i++) {
             const elem = labels[i];
-
             const text = await elem.evaluate(node => node.textContent.trim());
             if (text.includes(autoriaName)) {
                 try {
-                    await elem.click();
+                    const parent = (await elem.$x('..'))[0];
+
+                    const string = await parent.$eval('input', (elem) => `${elem.getAttribute('name')}=${elem.getAttribute('value')}`);
+
+                    result.push(string);
                 } catch(e) {
                     throw new Error(`Failed to select checkbox. blockSelector: ${blockSelector}, autoriaName: ${autoriaName} page: ${this.page.url()}`)
                 }
             }
         }
+
+        return result.join('&');
     }
 
-    async selectBrand(brand: string) {
-        const block = await this.page.$('#brandTooltipBrandAutocomplete-0');
-
-        if (!block) throw new Error(`Block not found on page`)
-
-        await block.click();
-        await this.page.waitForTimeout(2000);
-        try {
-            await block.type(brand, { delay: 100 });
-        } catch(e) {
-            throw new Error(`Can't type brand ${brand}`)
-        }
-        await this.page.waitForTimeout(2000);
-        const element = await block.$(`ul li[data-text="${brand}"]`);
-
-        if (!element) throw new Error(`Brand ${brand} not found on page`)
-        
-        try {
-            await element.click();
-        } catch(e) {
-            throw new Error(`Can't click to brand name ${brand} on page ${this.page.url()}`)
-        }
+    selectBrand(brand: string) {
+        return `brand.id[0]=${brand.split('_')[1]}`;
     }
 
-    async selectModel(model: string) {
-        const block = await this.page.$('#brandTooltipModelAutocomplete-0');
-
-        if (!block) throw new Error(`Block not found on page`)
-
-        await block.click();
-        await this.page.waitForTimeout(2000);
-        try {
-            await block.type(model, { delay: 100 });
-        } catch(e) {
-            throw new Error(`Can't type model ${model}`)
-        }
-        
-        await this.page.waitForTimeout(2000);
-
-        const element = await block.$(`ul li[data-text="${model}"]`);
-
-        if (!element) throw new Error(`Model ${model} not found on page`)
-
-        try {
-            await element.click();
-        } catch(e) {
-            throw new Error(`Can't click to model name ${model} on page ${this.page.url()}`)
-        }
+    selectModel(model: string) {
+        return `model.id[0]=${model.split('_')[1]}`;
     }
 
-    async selectYear(year: string) {
-        await this.page.select('#brandTooltipYearGte_0', year);
-        await this.page.select('#brandTooltipYearLte_0', year);
+    selectYear(year: string) {
+        return `year[0].gte=${year}&year[0].lte=${year}`
     }
 
     async selectTransmission(transmissionType: string) {
@@ -91,41 +55,15 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
         }
     }
 
-    async setEngineCapacity(capacity: number) {
-        const inputFrom = await this.page.$('[name="engine.gte"]');
-        const inputTo = await this.page.$('[name="engine.lte"]');
-
-        if (!inputFrom || !inputTo) throw new Error('Engine capacity inputs not found')
-
-        await inputFrom.type(capacity.toString(), { delay: 100 });
-        await inputTo.type(capacity.toString(), { delay: 100 });
-        await inputTo.press('Enter', { delay: 100 });
+    setEngineCapacity(capacity: number) {
+        return `engine.gte=${capacity}&engine.lte=${capacity}`;
     }
 
-    async setMileage(mileage: number) {
-        const inputFrom = await this.page.$('[name="mileage.gte"]');
-        const inputTo = await this.page.$('[name="mileage.lte"]');
-
-        if (!inputFrom || !inputTo) throw new Error('Mileage inputs not found')
-
-        let percentage = 15;
-
-        const valToAdd = mileage * (percentage / 100);
-
-        let fromVal = mileage - valToAdd;
-        let toVal = mileage + valToAdd;
-
-        if (mileage > 200000) {
-            fromVal = 180000;
-            toVal = 500000;
-        }
-
-        await inputFrom.type((fromVal / 1000).toString(), { delay: 100 });
-        await inputTo.type((toVal / 1000).toString(), { delay: 100 });
-        await inputTo.press('Enter', { delay: 100 });
+    setMileage(mileage: number) {
+        return `mileage.gte=${mileage}&mileage.lte${mileage}`;
     }
 
-    async selectFuelType(fuelType: string) {
+    selectFuelType(fuelType: string) {
         try {
             return this.selectCheckbox(fuelType, AUTORIA_FUEL_TYPE, '#fuelBlock');
         } catch (e) {
@@ -134,34 +72,43 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
     }
 
     async setCriterias(carData: CarData, criteriasToAvoid?: (keyof CarData)[]) {
-        await this.page.goto('https://auto.ria.com/uk/search/?indexName=auto,order_auto,newauto_search&categories.main.id=1&country.import.usa.not=-1&price.currency=1&sort[0].order=price.asc&abroad.not=0&custom.not=1&page=0&size=100');
         await this.page.bringToFront();
 
-        const block = await this.page.click('#brandTooltipBrandAutocomplete-0');
-        await this.page.waitForTimeout(5000);
+        const arr = [];
 
+        arr.push(this.selectBrand(carData.brand));
+        arr.push(this.selectModel(carData.model));
+        arr.push(this.selectYear(carData.year));
+        if (carData.transmissionType && !criteriasToAvoid?.includes('transmissionType')) {
+            const transmission = await this.selectTransmission(carData.transmissionType);
+            arr.push(transmission);
+        }
+        if (carData.capacity && !criteriasToAvoid?.includes('capacity')) {
+            arr.push(this.setEngineCapacity(carData.capacity));
+        }
+        if (carData.mileage && !criteriasToAvoid?.includes('mileage')) {
+            arr.push(this.setMileage(carData.mileage));
+        }
+        if (carData.fuelType && !criteriasToAvoid?.includes('fuelType')) {
+            const fuelType = await this.selectFuelType(carData.fuelType);
+            arr.push(fuelType);
+        }
 
-        await this.selectBrand(carData.brand);
-        await this.selectModel(carData.model);
-        await this.selectYear(carData.year);
-        if (carData.transmissionType && !criteriasToAvoid?.includes('transmissionType')) await this.selectTransmission(carData.transmissionType);
-        if (carData.capacity && !criteriasToAvoid?.includes('capacity')) await this.setEngineCapacity(carData.capacity);
-        if (carData.mileage && !criteriasToAvoid?.includes('mileage')) await this.setMileage(carData.mileage);
-        if (carData.fuelType && !criteriasToAvoid?.includes('fuelType')) await this.selectFuelType(carData.fuelType);
-
-        await this.page.waitForTimeout(2000);
-
-        await this.page.click('#floatingSearchButton');
-
-        await this.page.reload();
+        const url = 'https://auto.ria.com/uk/search/?' + arr.join('&') + '&indexName=auto,order_auto,newauto_search&categories.main.id=1&country.import.usa.not=-1&price.currency=1&sort[0].order=price.asc&abroad.not=0&custom.not=1&page=0&size=100';
+        await this.page.goto(url);
 
         return (await this.page.$$(ticketSelector)).length;
 
     }
 
     async getPrices(carLink: string) {
-        await this.page.waitForSelector(ticketSelector);
-        const tickets = await this.page.$$(ticketSelector);
+        let tickets;
+        try {
+            await this.page.waitForSelector(ticketSelector);
+            tickets = await this.page.$$(ticketSelector);
+        } catch(e) {
+            throw new Error(`Failed to get results on page ${this.page.url()} for car ${carLink}`)
+        }
 
         const result: number[] = [];
 
@@ -189,12 +136,14 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
         return result;
     }
 
-    isPriceLow(price: number, prices: number[]) {
+    getPriceType(price: number, prices: number[]) : PriceStatistic['priceType'] {
         const itemsInSegment = prices.length === 1 ? 0 : Math.ceil(prices.length / 3);
 
         const topOfFirstSegment = prices[itemsInSegment];
 
-        return price <= topOfFirstSegment;
+        if (price < prices[0]) return 'lowest';
+        else if (price <= topOfFirstSegment) return 'low'
+        return 'high';
     }
 
     async process(carData: CarData) {        
@@ -208,13 +157,17 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
         if (resultAmount < 5) resultAmount = await this.setCriterias(carData, ['mileage', 'fuelType', 'fuelType', 'transmissionType']);
 
         const prices = await this.getPrices(carData.link);
-        const isPriceLow = this.isPriceLow(carData.price, prices);
+        const priceType = this.getPriceType(carData.price, prices);
 
         return {
             pageLink: this.page.url(),
             prices,
-            isPriceLow,
-            carData,
+            priceType,
+            carData: {
+                ...carData,
+                brand: `#${carData.brand.split('_')[0]}`,
+                model: `${carData.model.split('_')[0]}`
+            },
         };
     }
 }

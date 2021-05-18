@@ -23,7 +23,7 @@ export default class Parser {
 
     if (timeDeltaH > 1) return true;
 
-    if (log.success || log.retriesAmount >= 1) return false;
+    if (log.success === 'true' || parseInt(log.retriesAmount) >= 1) return false;
 
     return true;
   }
@@ -71,11 +71,12 @@ export default class Parser {
 
       if (!data) continue;
 
-      if (data.isPriceLow) {
-        this.notificator.notify(`Price is #low${JSON.stringify(data)}`)
+      if (data.priceType === 'low' || data.priceType === 'lowest') {
+        this.notificator.notify(`Price is${data.priceType === 'lowest' ? ' #lowest' : ''} #low ${JSON.stringify(data)}`)
+        console.log(`Price is low #high ${JSON.stringify(data)}`)
         console.log(data)
       } else {
-        this.notificator.notify(`Price is too #high ${JSON.stringify(data)}`)
+        console.log(`Price is too #high ${JSON.stringify(data)}`)
       }
     }
   }

@@ -31,8 +31,8 @@ export default class Logger {
 
         const log = {
             link,
-            success,
-            retriesAmount: success || !existedLog ? 0 : existedLog.retriesAmount + 1,
+            success: success.toString(),
+            retriesAmount: success || !existedLog ? '0' : (parseInt(existedLog.retriesAmount) + 1).toString(),
             processedAt: new Date().toISOString(),
         }
 

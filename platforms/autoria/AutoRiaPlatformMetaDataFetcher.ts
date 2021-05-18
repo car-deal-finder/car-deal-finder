@@ -6,7 +6,10 @@ export default class AutoRiaPlatformDataFetcher extends PlatformMetaDataFetcher 
         try {
             await this.goToUrl('https://auto.ria.com/');
             
-            return await this.page.$$eval('#brandTooltipBrandAutocomplete-brand ul li', (nodes) => nodes.map(o => o.textContent.trim()));
+            return await this.page.$$eval(
+                '#brandTooltipBrandAutocomplete-brand ul li',
+                (nodes) => nodes.map(o => `${o.textContent.trim()}_${o.getAttribute('data-value')}`)
+            );
         } catch(e) {
             throw new Error('Failed to get all brands');
         }
@@ -41,7 +44,7 @@ export default class AutoRiaPlatformDataFetcher extends PlatformMetaDataFetcher 
 
             const result = await this.page.$$eval(
                 '#brandTooltipBrandAutocomplete-model ul li',
-                (nodes) => nodes.map(o => o.textContent.trim())
+                (nodes) => nodes.map(o => `${o.textContent.trim()}_${o.getAttribute('data-value')}`)
             )
 
             await this.page.click('#brandTooltipBrandAutocomplete-brand .ac-clean');
