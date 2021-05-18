@@ -10,7 +10,7 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
     async selectCheckbox(value: string, namesMap: object, blockSelector: string) {
         await this.page.click(`${blockSelector} .el-selected.open`);
 
-        const autoriaTransmissionName = namesMap[value];
+        const autoriaName = namesMap[value];
 
         const labels = await this.page.$$(`${blockSelector} .item-checkbox label`);
 
@@ -18,8 +18,12 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
             const elem = labels[i];
 
             const text = await elem.evaluate(node => node.textContent.trim());
-            if (text.includes(autoriaTransmissionName)) {
-                await elem.click();
+            if (text.includes(autoriaName)) {
+                try {
+                    await elem.click();
+                } catch(e) {
+                    throw new Error(`Failed to select checkbox. blockSelector: ${blockSelector}, autoriaName: ${autoriaName} page: ${this.page.url()}`)
+                }
             }
         }
     }
@@ -30,13 +34,22 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
         if (!block) throw new Error(`Block not found on page`)
 
         await block.click();
-        await block.type(brand, { delay: 100 });
+        await this.page.waitForTimeout(2000);
+        try {
+            await block.type(brand, { delay: 100 });
+        } catch(e) {
+            throw new Error(`Can't type brand ${brand}`)
+        }
         await this.page.waitForTimeout(2000);
         const element = await block.$(`ul li[data-text="${brand}"]`);
 
         if (!element) throw new Error(`Brand ${brand} not found on page`)
         
-        await element.click();
+        try {
+            await element.click();
+        } catch(e) {
+            throw new Error(`Can't click to brand name ${brand} on page ${this.page.url()}`)
+        }
     }
 
     async selectModel(model: string) {
@@ -46,14 +59,23 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
 
         await block.click();
         await this.page.waitForTimeout(2000);
-        await block.type(model, { delay: 100 });
+        try {
+            await block.type(model, { delay: 100 });
+        } catch(e) {
+            throw new Error(`Can't type model ${model}`)
+        }
+        
         await this.page.waitForTimeout(2000);
 
         const element = await block.$(`ul li[data-text="${model}"]`);
 
         if (!element) throw new Error(`Model ${model} not found on page`)
 
-        await element.click();
+        try {
+            await element.click();
+        } catch(e) {
+            throw new Error(`Can't click to model name ${model} on page ${this.page.url()}`)
+        }
     }
 
     async selectYear(year: string) {
@@ -129,7 +151,7 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
 
         await this.page.waitForTimeout(2000);
 
-        this.page.click('#floatingSearchButton');
+        await this.page.click('#floatingSearchButton');
 
         await this.page.reload();
 

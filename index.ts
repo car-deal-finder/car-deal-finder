@@ -6,35 +6,7 @@ import AutoRiaPriceStatisticFetcher from './platforms/autoria/AutoRiaPriceStatis
 import Notificator from './notificator';
 import Logger from './logger/logger';
 
-const createPage = async (browser: Browser) => {
-  const page = await browser.newPage();
-  page.setDefaultNavigationTimeout(60000 * 2);
-  await page.setExtraHTTPHeaders({
-    'Accept-Language': 'ru_RU',
-  });
-
-  return page;
-}
-
-const notificator = new Notificator();
-const logger = new Logger();
-
-const run = async (browser: Browser) => {
-  const page = await createPage(browser);
-  const page2 = await createPage(browser);
-  const page3 = await createPage(browser);
-
-  const autoRiaPlatformDataFetcher = new AutoRiaPlatformDataFetcher(page2);
-  const autoRiaPriceStatisticFetcher = new AutoRiaPriceStatisticFetcher(page3);
-  const autoRiaCarDataFetcher = new AutoRiaCarDataFetcher(autoRiaPlatformDataFetcher, page);
-  const parser = new Parser(autoRiaCarDataFetcher, autoRiaPriceStatisticFetcher, page, notificator, logger);
-
-  await parser.launch();
-  console.log('==================COLSE2!')
-  await browser.close();
-}
-
-const process = async () => {
+const createPage = async () => {
   const browser = await puppeteer.launch({ headless: false, args: [
     '--lang=ru-RU',
     '--shm-size=3gb',
@@ -44,19 +16,52 @@ const process = async () => {
     '--disable-web-security',
   ] });
 
+  const page = await browser.newPage();
+  page.setDefaultNavigationTimeout(60000 * 2);
+  await page.setExtraHTTPHeaders({
+    'Accept-Language': 'ru_RU',
+  });
+
+  return { page, browser };
+}
+
+const notificator = new Notificator();
+const logger = new Logger();
+
+const run = async () => {
+  const browsers = [];
   try {
-    await run(browser);
-  } catch (e) {
-    console.log(e);
-    notificator.notify(e.toString());
-    console.log('==================COLSE!')
-    await browser.close();
-    await process();
+    const { page, browser } = await createPage();
+    browsers.push(browser);
+    const { page: page2, browser: browser2 } = await createPage();
+    browsers.push(browser2);
+    const { page: page3, browser: browser3 } = await createPage();
+    browsers.push(browser3);
+
+    const autoRiaPlatformDataFetcher = new AutoRiaPlatformDataFetcher(page2);
+    const autoRiaPriceStatisticFetcher = new AutoRiaPriceStatisticFetcher(page3);
+    const autoRiaCarDataFetcher = new AutoRiaCarDataFetcher(autoRiaPlatformDataFetcher, page);
+    const parser = new Parser(autoRiaCarDataFetcher, autoRiaPriceStatisticFetcher, page, notificator, logger);
+
+    await parser.launch();
+    browser.process().kill('SIGKILL');
+  } catch(e) {
+    for (let i = 0; i < browsers.length; i++) {
+      await browsers[i].process().kill('SIGKILL');
+    }
+    throw e;
   }
-};
+}
 
-process();
-
-
+(async() => {
+  while(true) {
+    try {
+      await run();
+    } catch (e) {
+      console.log(e);
+      notificator.notify(e.toString());
+    }
+  }
+})()
 
 

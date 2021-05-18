@@ -19,9 +19,9 @@ export default class Parser {
 
     if (!log) return true;
 
-    const timeDeltaH = moment.duration(moment(new Date()).diff(moment(log.link))).asHours();
+    const timeDeltaH = moment.duration(moment(new Date()).diff(moment(log.processedAt))).asHours();
 
-    if (timeDeltaH > 12) return true;
+    if (timeDeltaH > 1) return true;
 
     if (log.success || log.retriesAmount >= 1) return false;
 
@@ -48,11 +48,6 @@ export default class Parser {
       return data;
     } catch(e) {
       if (link) this.logger.logData(link, false);
-
-      console.log(e);
-
-      this.notificator.notify(e.toString());
-
       throw e;
     }
   }
@@ -77,9 +72,11 @@ export default class Parser {
       if (!data) continue;
 
       if (data.isPriceLow) {
-        this.notificator.notify(JSON.stringify(data))
+        this.notificator.notify(`Price is #low${JSON.stringify(data)}`)
         console.log(data)
-      };
+      } else {
+        this.notificator.notify(`Price is too #high ${JSON.stringify(data)}`)
+      }
     }
   }
 }

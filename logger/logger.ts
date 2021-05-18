@@ -33,7 +33,7 @@ export default class Logger {
             link,
             success,
             retriesAmount: success || !existedLog ? 0 : existedLog.retriesAmount + 1,
-            processedAt: new Date().toString(),
+            processedAt: new Date().toISOString(),
         }
 
         this.writeLog(log, logs, existedLog);

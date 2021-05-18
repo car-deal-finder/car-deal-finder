@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node index.ts"
+    "start": "node -r ts-node/register --trace-uncaught --trace-warnings index.ts"
   },
   "author": "",
   "license": "ISC",
@@ -17,7 +17,7 @@
     "moment": "^2.29.1",
     "node-telegram-bot-api": "^0.53.0",
     "npm": "^7.12.1",
-    "puppeteer": "^9.1.0",
+    "puppeteer": "^9.1.1",
     "ts-node": "^9.1.1",
     "tsc": "^1.20150623.0"
   },
