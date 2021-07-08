@@ -127,7 +127,7 @@ ${data.carData.transmissionType ? this.translateTransmissionType(data.carData.tr
       await page.click('.c-notifier-start [for="c-notifier-close"]');
     } catch(e) {}
 
-    const items = await page.$$('.ticket-item:not(.new__ticket)');
+    const items = await page.$$('.ticket-item:not(.new__ticket):not(.hide)');
 
     const carsData = [];
 

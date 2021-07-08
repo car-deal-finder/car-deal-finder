@@ -59,6 +59,18 @@ export abstract class PageManipulator {
 }
 
 export abstract class CarDataFetcher {
+  static getCorrectNameOfModel(brand: string, model: string) {
+    const formattedBrand = brand.toLowerCase();
+    
+    if (formattedBrand.includes('mercedes')) {
+      if (model.includes('Vito'))
+        return `Vito`;
+      if (model.includes('Sprinter'))
+        return `Sprinter`;
+    }
+
+    return model
+  }
   static getNameOfExceptionModel(brand: string, model: string) {
     const formattedBrand = brand.toLowerCase();
       if (formattedBrand === 'bmw') {
@@ -68,10 +80,10 @@ export abstract class CarDataFetcher {
           return isNaN(parseInt(model[0])) ? model : `${model[0]}-series`;
       }
       if (formattedBrand.includes('mercedes')) {
-        if (formattedBrand.split(' ')[0] === 'ml')
-          return `m-class`;
+        if (model.split(' ')[0] === 'ML')
+          return `M-Class`;
         else
-          return `${formattedBrand.split(' ')[0]}-class`;
+          return `${model.split(' ')[0]}-Class`;
       }
   }
   abstract getDataFromCardElem(elem: ElementHandle<Element>): Promise<CarData>;

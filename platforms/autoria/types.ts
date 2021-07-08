@@ -7,4 +7,5 @@ export interface PriceStatistic {
     carData: CarData;
 }
 
-export interface Brand { name: string; models: { name: string; years: number[][] }[]}
+export interface Model { name: string; years: number[][] }
+export interface Brand { name: string; models: Model[]}

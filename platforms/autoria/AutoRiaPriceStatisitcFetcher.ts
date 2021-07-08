@@ -1,9 +1,9 @@
 import { Page } from "puppeteer";
 import { CarData, PageManipulator, PriceStatisticFetcher } from "../../parser/types";
-import { AUTORIA_FUEL_TYPE, AUTORIA_TRANSMISSION_TYPE } from "./constants";
+import { AUTORIA_FUEL_TYPE, AUTORIA_TRANSMISSION_TYPE, MIN_RESULT_AMOUNT } from "./constants";
 import { PriceStatistic } from "./types";
 
-const ticketSelector = '#searchResults .ticket-item:not(.hide)';
+const ticketSelector = '#searchResults .ticket-item:not(.hide):not(.new__ticket)';
 
 export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher {
     constructor() {
@@ -25,6 +25,8 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
         return (formattedBrand === 'bmw' && formattedModel[0] === 'x') ||
         formattedBrand === 'dodge' ||
         formattedBrand === 'mini' ||
+        formattedBrand.includes('chrysler') ||
+        formattedBrand.includes('mercedes') ||
         formattedModel.includes('cherokee') ||
         formattedModel.includes('mustang') ||
         formattedModel.includes('camaro')
@@ -46,7 +48,6 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
                     const parent = (await elem.$x('..'))[0];
 
                     const string = await parent.$eval('input', (elem) => `${elem.getAttribute('name')}=${elem.getAttribute('value')}`);
-                    console.log('string', string)
                     result.push(string);
                 } catch(e) {
                     throw new Error(`Failed to select checkbox. blockSelector: ${blockSelector}, autoriaName: ${autoriaName} page: ${page.url()}`)
@@ -118,6 +119,7 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
     async getPrices(page: Page, carLink: string) {
         let tickets = []
 
+        await page.waitForSelector(ticketSelector);
         tickets = await page.$$(ticketSelector);
 
         const result: number[] = [];
@@ -202,7 +204,7 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
 
             const maxPrice = pricesWithYearLimit[pricesWithYearLimit.length - 1];
     
-            await page.goto(url);
+            await page.goto(url, { waitUntil: 'domcontentloaded' });
     
             const prices = await this.getPrices(page, carData.link);
 
@@ -257,15 +259,15 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
 
         try {
             let prices = await this.setCriterias(page, carData);
-            if (prices.length < 5) prices = (await this.setCriterias(page, carData, ['mileage']));
-            if (prices.length < 5) prices = await this.setCriterias(page, carData, ['capacity']);
-            if (prices.length < 5) prices = await this.setCriterias(page, carData, ['fuelType']);
-            if (prices.length < 5) prices = await this.setCriterias(page, carData, ['mileage', 'capacity']);
-            if (prices.length < 5) prices = await this.setCriterias(page, carData, ['mileage', 'fuelType']);
-            if (prices.length < 5) prices = await this.setCriterias(page, carData, ['mileage', 'fuelType', 'fuelType']);
-            if (prices.length < 5) prices = await this.setCriterias(page, carData, ['mileage', 'fuelType', 'fuelType', 'capacity']);
-            if (prices.length < 5) prices = await this.setCriterias(page, carData, ['mileage', 'fuelType', 'fuelType', 'transmissionType', 'capacity']);
-            if (prices.length < 5) prices = await this.setCriterias(page, carData, ['mileage', 'fuelType', 'fuelType', 'transmissionType', 'capacity', 'year']);
+            if (prices.length < MIN_RESULT_AMOUNT) prices = (await this.setCriterias(page, carData, ['mileage']));
+            if (prices.length < MIN_RESULT_AMOUNT) prices = await this.setCriterias(page, carData, ['capacity']);
+            if (prices.length < MIN_RESULT_AMOUNT) prices = await this.setCriterias(page, carData, ['fuelType']);
+            if (prices.length < MIN_RESULT_AMOUNT) prices = await this.setCriterias(page, carData, ['mileage', 'capacity']);
+            if (prices.length < MIN_RESULT_AMOUNT) prices = await this.setCriterias(page, carData, ['mileage', 'fuelType']);
+            if (prices.length < MIN_RESULT_AMOUNT) prices = await this.setCriterias(page, carData, ['mileage', 'fuelType', 'fuelType']);
+            if (prices.length < MIN_RESULT_AMOUNT) prices = await this.setCriterias(page, carData, ['mileage', 'fuelType', 'fuelType', 'capacity']);
+            if (prices.length < MIN_RESULT_AMOUNT) prices = await this.setCriterias(page, carData, ['mileage', 'fuelType', 'fuelType', 'transmissionType', 'capacity']);
+            if (prices.length < MIN_RESULT_AMOUNT) prices = await this.setCriterias(page, carData, ['mileage', 'fuelType', 'fuelType', 'transmissionType', 'capacity', 'year']);
 
             const priceType = this.getPriceType(carData.price, prices);
 

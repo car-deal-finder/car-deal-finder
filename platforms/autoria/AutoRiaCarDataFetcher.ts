@@ -4,7 +4,7 @@ import { CarDataFetcher, PageManipulator } from "../../parser/types";
 import { AUTORIA_FUEL_TYPE, AUTORIA_TRANSMISSION_TYPE } from "./constants";
 import { TRANSMISSION_TYPE } from "../../parser/constants";
 import { ModelsYearsFetcher } from "../../ModelsYearsFetcher";
-import { Brand } from "./types";
+import { Brand, Model } from "./types";
 
 export default class AutoRiaCarDataFetcher extends CarDataFetcher {
     constructor (
@@ -12,6 +12,14 @@ export default class AutoRiaCarDataFetcher extends CarDataFetcher {
         private allBrands: Brand[],
     ) {
         super();
+    }
+
+    getModel(models: Brand['models'], modelName: string) {
+        const modelsArr = models.filter(o => modelName.includes(o.name.split('_')[0]));
+
+        if (!modelsArr.length) throw new Error(`There is no such model ${modelName} in db`)
+
+        return _.sortBy(modelsArr, 'name.length')[modelsArr.length - 1];
     }
 
     async parseTitle(title: string) {
@@ -23,17 +31,28 @@ export default class AutoRiaCarDataFetcher extends CarDataFetcher {
 
         if (!brand) throw new Error(`There is no such brand ${title} in db`)
 
-        const models = brand.models.filter(o => brandAndModel.includes(o.name.split('_')[0]));
+        const model = this.getModel(brand.models, brandAndModel);
 
-        if (!models.length) throw new Error(`There is no such model ${title} in db`)
+        const correctNameOfModel = CarDataFetcher.getCorrectNameOfModel(brand.name, model.name);
+ 
+        let correctModel: Model;
+        if (correctNameOfModel !== model.name) {
+            correctModel = this.getModel(brand.models, correctNameOfModel);
+        }
+        
+        let exceptionModel: Model;
+        if (!model.years.length) {
+            const exceptionModelName = CarDataFetcher.getNameOfExceptionModel(brand.name, correctModel?.name || model.name);
+            if (exceptionModelName) exceptionModel = this.getModel(brand.models, exceptionModelName);;
+        }
 
-        const model = _.sortBy(models, 'name.length')[models.length - 1];
+        const modelObj = exceptionModel || correctModel || model;
 
         return {
             year,
             brand: brand.name,
-            model: model.name,
-            modelYears: model.years.length ? this.modelsYearsFetcher.getYearRange(year, model.years) : model.years,
+            model: modelObj.name, 
+            modelYears: modelObj.years.length ? this.modelsYearsFetcher.getYearRange(year, modelObj.years) : modelObj.years,
         };
     }
 

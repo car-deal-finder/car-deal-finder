@@ -13,3 +13,5 @@ export const AUTORIA_TRANSMISSION_TYPE: { [key in TRANSMISSION_TYPE]: string } &
     [TRANSMISSION_TYPE.automatic]: 'Автомат',
     unknown: 'Не вказано',
 }
+
+export const MIN_RESULT_AMOUNT = 3;
