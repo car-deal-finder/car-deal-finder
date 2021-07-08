@@ -1,17 +1,20 @@
-import { ElementHandle, Page } from 'puppeteer';
+import puppeteer, { ElementHandle, Page } from 'puppeteer';
 import Notificator from '../notificator';
 import { PriceStatistic } from '../platforms/autoria/types';
 
 export interface CarData {
   brand: string;
   model: string;
-  year: string;
+  modelIndex?: string;
+  year: number;
   price: number;
   fuelType: string;
   capacity: number;
   transmissionType: string;
   mileage: number;
   link: string;
+  modelYears: number[][];
+  location: string[];
 }
 
 
@@ -19,6 +22,30 @@ export abstract class PageManipulator {
   constructor(
     public page: Page,
   ) {}
+  
+  static async createPage () {
+    const browser = await puppeteer.launch({
+      headless: false,
+      // executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      args: [
+        '--lang=ru-RU',
+        '--shm-size=3gb',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-web-security',
+      ]
+    });
+  
+    const page = await browser.newPage();
+    page.setDefaultTimeout(0);
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'ru_RU',
+    });
+
+    return { page, browser };
+  }
+  
 
   async goToUrl(url: string) {
       const currentUrl = this.page.url();
@@ -31,21 +58,34 @@ export abstract class PageManipulator {
   }
 }
 
-export abstract class CarDataFetcher extends PageManipulator {
-  
-  abstract process(elem: ElementHandle<Element>): Promise<CarData>;
+export abstract class CarDataFetcher {
+  static getNameOfExceptionModel(brand: string, model: string) {
+    const formattedBrand = brand.toLowerCase();
+      if (formattedBrand === 'bmw') {
+        if (model.includes('Active Hybrid'))
+          return `${model.slice(-1)}-series`
+        else
+          return isNaN(parseInt(model[0])) ? model : `${model[0]}-series`;
+      }
+      if (formattedBrand.includes('mercedes')) {
+        if (formattedBrand.split(' ')[0] === 'ml')
+          return `m-class`;
+        else
+          return `${formattedBrand.split(' ')[0]}-class`;
+      }
+  }
+  abstract getDataFromCardElem(elem: ElementHandle<Element>): Promise<CarData>;
+  abstract getDataFromCarPage(page: Page): Promise<CarData>;
 }
 
-export abstract class PriceStatisticFetcher extends PageManipulator {
+export abstract class PriceStatisticFetcher {
   abstract process(carData: CarData): Promise<PriceStatistic>;
 }
 
-export abstract class PlatformMetaDataFetcher extends PageManipulator {
+export abstract class PlatformMetaDataFetcher {
   abstract getAllBrands(): Promise<string[]>;
   abstract getAllModels(brand: string): Promise<string[]>;
 }
-
-export type FuelTypeA  = 'a' | 'b';
 
 export interface FuelType {
   petrol: string;

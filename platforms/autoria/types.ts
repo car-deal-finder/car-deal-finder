@@ -6,3 +6,5 @@ export interface PriceStatistic {
     priceType: 'low' | 'lowest' | 'high';
     carData: CarData;
 }
+
+export interface Brand { name: string; models: { name: string; years: number[][] }[]}
