@@ -1,15 +1,8 @@
-name: AWS ECR
+- name: AWS ECR
   uses: kciter/aws-ecr-action@v4
   with:
-    # The AWS access key id
     access_key_id: AKIAVVS3LTHFFPB2BRLY
-    # The AWS secret access key
     secret_access_key: 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
-    # AWS Account ID
     account_id: 389959883210
-    # A role to assume under the account_id account.
-    assume_role: # optional, default is 
-    # Name of your ECR repository
     repo: cars-parser
-    # The AWS region
     region: us-east-2
