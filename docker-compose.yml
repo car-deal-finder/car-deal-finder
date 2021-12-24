@@ -1,0 +1,19 @@
+services:
+  node:
+    build: .
+    depends_on:
+      - mongo
+    ports:
+      - "2000:2000"
+    restart: unless-stopped
+  mongo:
+      image: mongo
+      ports:
+        - '5000:27017'
+      environment:
+        - MONGO_INITDB_ROOT_USERNAME=root
+        - MONGO_INITDB_ROOT_PASSWORD=root
+        - MONGO_INITDB_DATABASE=cars-parser
+      restart: unless-stopped
+      volumes:
+        - ./docker-entrypoint-initdb.d/initdb.js:/docker-entrypoint-initdb.d/initdb.js:ro

@@ -1,6 +1,7 @@
 import { Page } from "puppeteer";
+import { TRANSMISSION_TYPE } from "../../parser/constants";
 import { CarData, PageManipulator, PriceStatisticFetcher } from "../../parser/types";
-import { AUTORIA_FUEL_TYPE, AUTORIA_TRANSMISSION_TYPE, MIN_RESULT_AMOUNT } from "./constants";
+import { AUTORIA_FUEL_TYPE, AUTORIA_TRANSMISSION_TYPE, COMPETITORES_AMOUNT_TRESHOLD, MIN_PROFIT_AMOUNT, MIN_RESULT_AMOUNT } from "./constants";
 import { PriceStatistic } from "./types";
 
 const ticketSelector = '#searchResults .ticket-item:not(.hide):not(.new__ticket)';
@@ -68,8 +69,13 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
 
     async selectYear(range: number[], year: number) {
         let from, to;
-        if (range[1] - range[0] < 3) from = range[0], to = range[0]
-        else {
+
+        if (!range.length) {
+            from = year - 1;
+            to = new Date().getFullYear();
+        } else if (range[1] - range[0] < 3) {
+            from = range[0], to = range[0]
+        } else {
             from = range[0] + 1;
 
             if (year <= from) to = from;
@@ -81,6 +87,7 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
     }
 
     async selectTransmission(page: Page, transmissionType: string) {
+        if (transmissionType === TRANSMISSION_TYPE.manual) return '';
         try {
             return this.selectCheckbox(page, transmissionType, AUTORIA_TRANSMISSION_TYPE, '#gearboxBlock');
         } catch (e) {
@@ -93,15 +100,13 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
     }
 
     setMileage(mileage: number) {
-        let percentage = 15;
-
-        const valToAdd = mileage * (percentage / 100);
+        const valToAdd = 40000;
 
         let fromVal = mileage - valToAdd;
         let toVal = mileage + valToAdd;
 
         if (mileage > 200000) {
-            fromVal = 180000;
+            fromVal = 160000;
             toVal = 500000;
         }
 
@@ -119,7 +124,7 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
     async getPrices(page: Page, carLink: string) {
         let tickets = []
 
-        await page.waitForSelector(ticketSelector);
+        // await page.waitForSelector(ticketSelector);
         tickets = await page.$$(ticketSelector);
 
         const result: number[] = [];
@@ -160,7 +165,7 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
         if (carData.modelYears.length) {
             modelYears = [carData.modelYears[0][0], carData.modelYears[0][1]]
         } else {
-            modelYears = [carData.year, new Date().getFullYear()]
+            modelYears = []
         }
 
         const [yearFrom, yearTo] = (await this.selectYear(modelYears, carData.year)).split('&');
@@ -170,7 +175,7 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
         arr.push(yearFrom);
         if (carData.transmissionType && !criteriasToAvoid?.includes('transmissionType')) {
             const transmission = await this.selectTransmission(page, carData.transmissionType);
-            arr.push(transmission);
+            if (transmission) arr.push(transmission);
         }
         if (
             carData.capacity &&
@@ -219,6 +224,26 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
         }
     }
 
+    filterPrices(prices: number[]) {
+        if (prices.length <= 3) return prices;
+
+        const indexToStartSlice = prices.findIndex((priceItem, index) => {
+            const arrToCompare = prices.slice(index, Math.min(index + 3, prices.length));
+
+            const filteredArrToCompare = arrToCompare.filter((currVal, i) => {
+                const nextVal = arrToCompare[i + 1];
+
+                if (!nextVal) return true;
+
+                return nextVal - currVal <= currVal * 0.1;
+            });
+
+            return arrToCompare.length === filteredArrToCompare.length;
+        });
+        
+        return prices.slice(indexToStartSlice);
+    }
+
     getPriceType(price: number, prices: number[]) : PriceStatistic['priceType'] {
         if (prices.length === 0) return 'lowest';
 
@@ -228,30 +253,27 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
 
         const topOfFirstSegment = prices[itemsInSegment];
 
+        const filteredPrices = this.filterPrices(prices);
+
         if (prices.length > 3) {
-            const indexToStartSlice = prices.findIndex((priceItem, index) => {
-               const arrToCompare = prices.slice(index, Math.min(index + 3, prices.length));
+            if (!filteredPrices.length) price < topOfFirstSegment ? 'low' : 'high';
 
-               const filteredArrToCompare = arrToCompare.filter((currVal, i) => {
-                    const nextVal = arrToCompare[i + 1];
-
-                    if (!nextVal) return true;
-
-                    return nextVal - currVal <= currVal * 0.1;
-               });
-
-               return arrToCompare.length === filteredArrToCompare.length;
-            });
-            
-            const slicedPrices = prices.slice(indexToStartSlice);
-
-            if (!slicedPrices.length) price < topOfFirstSegment ? 'low' : 'high';
-
-            const limitPrice = slicedPrices[Math.min(2, slicedPrices.length - 1)];
+            const limitPrice = filteredPrices[Math.min(2, filteredPrices.length - 1)];
 
             return price <= limitPrice ? 'low' : 'high';
         }
         return price < topOfFirstSegment ? 'low' : 'high';;
+    }
+
+    getCompetitorsType(price: number, prices: number[]): PriceStatistic['competitorsType'] {
+        const filteredPrices = this.filterPrices(prices);
+
+        const competitors = filteredPrices.filter(o => o <= price + MIN_PROFIT_AMOUNT);
+
+
+        if (competitors.length >= COMPETITORES_AMOUNT_TRESHOLD) return 'lotOfCompetitors';
+        else if (competitors.length < COMPETITORES_AMOUNT_TRESHOLD && competitors.length > 0) return 'midCompetitors';
+        else return 'noCompetitors';
     }
 
     async process(carData: CarData) {
@@ -270,11 +292,13 @@ export default class AutoRiaPriceStatisticFetcher extends PriceStatisticFetcher 
             if (prices.length < MIN_RESULT_AMOUNT) prices = await this.setCriterias(page, carData, ['mileage', 'fuelType', 'fuelType', 'transmissionType', 'capacity', 'year']);
 
             const priceType = this.getPriceType(carData.price, prices);
+            const competitorsType = this.getCompetitorsType(carData.price, prices);
 
             return {
                 pageLink: page.url(),
                 prices,
                 priceType,
+                competitorsType,
                 carData: {
                     ...carData,
                     brand: `${carData.brand.split('_')[0]}`,

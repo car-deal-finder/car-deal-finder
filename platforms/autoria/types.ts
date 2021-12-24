@@ -4,6 +4,7 @@ export interface PriceStatistic {
     pageLink: string;
     prices: number[];
     priceType: 'low' | 'lowest' | 'high';
+    competitorsType: 'lotOfCompetitors' | 'midCompetitors' | 'noCompetitors';
     carData: CarData;
 }
 

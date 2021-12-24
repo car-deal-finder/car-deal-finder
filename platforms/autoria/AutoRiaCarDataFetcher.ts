@@ -133,7 +133,7 @@ export default class AutoRiaCarDataFetcher extends CarDataFetcher {
     }
 
     async getDataFromCarPage(page: Page) {
-        let title: string, link: string, price: number, engine: string, mileage: number, transmissionType: string | null, location: string[];
+        let title: string, link: string, price: number, engine: string, mileage: number, transmissionType: string | null, location: string[], proSeller: boolean;
 
         try {
             title = await page.$eval('h1.head', (node) => node.textContent.trim());
@@ -190,6 +190,14 @@ export default class AutoRiaCarDataFetcher extends CarDataFetcher {
             throw new Error('Failed to get location')
         }
 
+        try {
+            const [goodsAmount] = await page.$x(`//li[contains(., 'Пропозицій продавця')]`);
+            proSeller = !!goodsAmount;
+        } catch(e) {
+            console.log(e);
+            throw new Error('Failed to get goods amount')
+        }
+
         const titleData = await this.parseTitle(title);
         const engineData = this.parseEngine(engine, true);
 
@@ -201,6 +209,7 @@ export default class AutoRiaCarDataFetcher extends CarDataFetcher {
             mileage,
             link: page.url(),
             location,
+            proSeller,
         };
 
         if (titleData.modelYears.length > 1) {

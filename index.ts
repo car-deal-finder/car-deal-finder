@@ -5,13 +5,20 @@ import Notificator from './notificator';
 import Logger from './logger/logger';
 import { ModelsYearsFetcher } from './ModelsYearsFetcher';
 import { AutoRiaBrand } from './db';
+import './server';
 
 const notificator = new Notificator();
 
 const run = async () => {
   try {
+    console.log(1111)
+    //
+    // const a = new AutoRiaBrand({ name: '', models: [] });
+    // await a.save()
+
     const brands = await AutoRiaBrand.find();
-   
+    console.log(2222)
+
     const logger = new Logger();
     const modelsYearsFetcher = new ModelsYearsFetcher();
     const autoRiaPriceStatisticFetcher = new AutoRiaPriceStatisticFetcher();
@@ -24,17 +31,18 @@ const run = async () => {
         await parser.analyzePageLink(chatId, pageLinkMsg)
       } catch (e) {
         console.log(e);
-        notificator.notifyServiceBot(e);
+        notificator.notifyServiceBot(e.toString());
       }
     });
 
-    notificator.notifyServiceBot('Started!');
+    await notificator.notifyServiceBot('Started!');
 
     await parser.launch();
   } catch(e) {
     console.log(e);
+
     notificator.notifyServiceBot(e.toString());
-    
+
     throw e;
   }
 }
@@ -54,7 +62,6 @@ const run = async () => {
 
 // console.log('result =====', result);
 
-  
   while(true) {
     try {
       await run();
@@ -66,5 +73,3 @@ const run = async () => {
     }
   }
 })()
-
-

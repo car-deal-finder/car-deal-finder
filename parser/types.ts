@@ -15,6 +15,7 @@ export interface CarData {
   link: string;
   modelYears: number[][];
   location: string[];
+  proSeller?: boolean;
 }
 
 
@@ -22,10 +23,10 @@ export abstract class PageManipulator {
   constructor(
     public page: Page,
   ) {}
-  
+
   static async createPage () {
     const browser = await puppeteer.launch({
-      headless: false,
+      headless: true,
       // executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
       args: [
         '--lang=ru-RU',
@@ -36,23 +37,23 @@ export abstract class PageManipulator {
         '--disable-web-security',
       ]
     });
-  
+
     const page = await browser.newPage();
-    page.setDefaultTimeout(0);
+    page.setDefaultTimeout(60000 * 3);
     await page.setExtraHTTPHeaders({
       'Accept-Language': 'ru_RU',
     });
 
     return { page, browser };
   }
-  
+
 
   async goToUrl(url: string) {
       const currentUrl = this.page.url();
 
       if (!currentUrl.includes(url)) {
           await this.page.goto(url);
-      } 
+      }
 
       await this.page.bringToFront();
   }
@@ -61,7 +62,7 @@ export abstract class PageManipulator {
 export abstract class CarDataFetcher {
   static getCorrectNameOfModel(brand: string, model: string) {
     const formattedBrand = brand.toLowerCase();
-    
+
     if (formattedBrand.includes('mercedes')) {
       if (model.includes('Vito'))
         return `Vito`;

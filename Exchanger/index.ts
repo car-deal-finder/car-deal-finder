@@ -14,7 +14,7 @@ class Exchanger {
     async processItem(link: string) {
         const { page, browser } = await PageManipulator.createPage();
         await page.goto(link);
-    
+
         const data = await this.carDataFetcher.getDataFromCarPage(page);
     }
 
@@ -36,10 +36,14 @@ class Exchanger {
 }
 
 (async () => {
+  try {
     const brands = await AutoRiaBrand.find();
     const modelsYearsFetcher = new ModelsYearsFetcher();
     const autoRiaCarDataFetcher = new AutoRiaCarDataFetcher(modelsYearsFetcher, brands);
     const exchanger = new Exchanger(autoRiaCarDataFetcher);
 
     await exchanger.parse();
+  } catch(e) {
+    console.log(e);
+  }
 })()

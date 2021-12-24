@@ -1,7 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api';
-import { CarData } from '../parser/types';
 
-const serviceBotToken = '1818588017:AAFTvYIPabjaYi14mqgi5F2IS_Zn37kdW0o';
+const serviceBotToken = '1818588017:AAGVOoSX7ozw_Rok3MaUCi4QjmbYrfR7pqo';
 const botToken = '1849117038:AAFiMLzJ91RI38wJlVgK1gLttlVim3gzDOk';
 const serviceBotChatId = '416295621';
 const channelChatId = '-1001171392842';
@@ -23,17 +22,17 @@ export default class Notificator {
             console.log('=======Bot=======chatId', msg.chat.id);
             console.log('=======Bot=======msg', msg.text);
 
-            if (this.dataRequested) this.dataRequested(msg.chat.id, msg.text);
+            if (this.dataRequested && msg.chat.id && msg.text) this.dataRequested(msg.chat.id, msg.text);
         });
     }
     async notifyChannel(data) {
-        this.serviceBot.sendMessage(channelChatId, data);
+        return this.serviceBot.sendMessage(channelChatId, data);
     }
     async notifyServiceBot(data) {
-        this.serviceBot.sendMessage(serviceBotChatId, data);
+        return this.serviceBot.sendMessage(serviceBotChatId, data);
     }
     async notifyBot(chatId, data) {
-        this.bot.sendMessage(chatId, data);
+        return this.bot.sendMessage(chatId, data);
     }
     public onDataRequested(cb) {
         this.dataRequested = cb;

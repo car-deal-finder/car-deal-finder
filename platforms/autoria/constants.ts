@@ -1,6 +1,6 @@
 import { FUEL_TYPE, TRANSMISSION_TYPE } from "../../parser/constants"
 
-export const    AUTORIA_FUEL_TYPE: { [key in FUEL_TYPE]: string } = {
+export const AUTORIA_FUEL_TYPE: { [key in FUEL_TYPE]: string } = {
     [FUEL_TYPE.petrol]: 'Бензин',
     [FUEL_TYPE.diesel]: 'Дизель',
     [FUEL_TYPE.electro]: 'Електро',
@@ -15,3 +15,5 @@ export const AUTORIA_TRANSMISSION_TYPE: { [key in TRANSMISSION_TYPE]: string } &
 }
 
 export const MIN_RESULT_AMOUNT = 3;
+export const COMPETITORES_AMOUNT_TRESHOLD = 2;
+export const MIN_PROFIT_AMOUNT = 1000;

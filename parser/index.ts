@@ -81,10 +81,9 @@ export default class Parser {
 
   async analyzePageLink(chatId: string, pageLink: string) {
     const carData = await this.getFullCarData(pageLink);
-
     const data = await this.priceStatisticFetcher.process(carData);
     
-    this.notificator.notifyBot(chatId, this.createMessage(data));
+    await this.notificator.notifyBot(chatId, this.createMessage(data));
   }
 
   translateFuelType(fuelType: string) {
@@ -102,7 +101,8 @@ export default class Parser {
 
   createMessage(data: PriceStatistic) {
     return `
-${data.priceType === 'lowest' ? '#СамаяНизкаяЦена! ' : ''}${data.priceType === 'low' ? '#НизкаяЦена ' : ''}${data.priceType === 'high' ? '#ВысокаяЦена ' : ''}
+${data.priceType === 'lowest' ? '#СамаяНизкаяЦена! ' : ''}${data.priceType === 'low' ? '#НизкаяЦена ' : ''}${data.priceType === 'high' ? '#ВысокаяЦена ' : ''} ${data.carData.proSeller ? 'Перекуп!' : ''}
+${data.competitorsType === 'lotOfCompetitors' ? 'Множество конкурентов ' : ''}${data.competitorsType === 'midCompetitors' ? 'Несколько конкурентов ' : ''}${data.competitorsType === 'noCompetitors' ? '#НетКонкурентов! ' : ''}
 #${data.carData.location.join(' #')}
 #${data.carData.brand} #${data.carData.model} ${data.carData.year}г. 
 ${data.carData.mileage ? `Пробег: ${data.carData.mileage} км.` : ''}
@@ -117,7 +117,7 @@ ${data.carData.transmissionType ? this.translateTransmissionType(data.carData.tr
   }
 
   async launch() {
-    const url = `https://auto.ria.com/uk/search/?indexName=auto,order_auto,newauto_search&categories.main.id=1&country.import.usa.not=-1&price.currency=1&sort[0].order=dates.created.desc&top=1&abroad.not=0&custom.not=1&page=0&size=100`;
+    const url = `https://auto.ria.com/uk/search/?indexName=auto,order_auto,newauto_search&categories.main.id=1&country.import.usa.not=-1&region.id[0]=10&price.currency=1&sort[0].order=dates.created.desc&top=1&abroad.not=0&custom.not=1&page=0&size=100`;
 
     const { page, browser } = await PageManipulator.createPage();
 
@@ -164,8 +164,9 @@ ${data.carData.transmissionType ? this.translateTransmissionType(data.carData.tr
         const data: PriceStatistic = {
           ...priceStatistic,
           carData: {
-            ...priceStatistic.carData,
-            location: fullCarData.location,
+            ...fullCarData,
+            brand: priceStatistic.carData.brand,
+            model: priceStatistic.carData.model,
           },
         }
 
