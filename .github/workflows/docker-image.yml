@@ -1,4 +1,4 @@
-- name: AWS ECR
+name: AWS ECR
   uses: kciter/aws-ecr-action@v4
   with:
     # The AWS access key id
