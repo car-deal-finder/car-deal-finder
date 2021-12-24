@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v2
       - uses: kciter/aws-ecr-action@v4
         with:
           access_key_id: AKIAVVS3LTHFFPB2BRLY
