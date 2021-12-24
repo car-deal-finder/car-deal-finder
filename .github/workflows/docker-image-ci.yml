@@ -13,6 +13,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+      - uses: kciter/aws-ecr-action@v4
+        with:
+          access_key_id: AKIAVVS3LTHFFPB2BRLY
+          secret_access_key: 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
+          account_id: 389959883210
+          repo: cars-parser
+          region: us-east-2
