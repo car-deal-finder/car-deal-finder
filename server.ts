@@ -26,5 +26,5 @@ app.get('/status', (req, res) => {
 
 
 app.listen(port, () => {
-  console.log(`status endpoint listening at http://localhost:${port}/status`)
+  console.log(`status endpoint listening at http://localhost:${port}`)
 })
