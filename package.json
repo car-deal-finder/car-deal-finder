@@ -15,7 +15,7 @@
   "dependencies": {
     "@types/lodash": "^4.14.168",
     "express": "^4.17.2",
-    "i": "^0.3.6",
+    "i": "^0.3.7",
     "lodash": "^4.17.21",
     "moment": "^2.29.1",
     "mongoose": "^5.12.11",
