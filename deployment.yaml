@@ -4,6 +4,7 @@ metadata:
   name: crawler
   labels:
     name: crawler
+    name2: crawler2
 spec:
   replicas: 1
   selector:

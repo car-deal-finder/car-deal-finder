@@ -2,10 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="3fcc477e-45d9-44f4-acc9-49e6c0cf4571" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/deployment.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/service.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server.ts" beforeDir="false" afterPath="$PROJECT_DIR$/server.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deployment.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,7 +43,7 @@
       <workItem from="1634311062641" duration="15000" />
       <workItem from="1634311461118" duration="22000" />
       <workItem from="1635176722788" duration="11000" />
-      <workItem from="1641420788165" duration="2336000" />
+      <workItem from="1641420788165" duration="3120000" />
     </task>
     <servers />
   </component>
