@@ -1,0 +1,23 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: kciter/aws-ecr-action@v4
+        with:
+          access_key_id: AKIAVVS3LTHFFPB2BRLY
+          secret_access_key: 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
+          account_id: 389959883210
+          repo: cars-parser
+          region: us-east-2
