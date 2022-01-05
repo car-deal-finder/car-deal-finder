@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crawler
+  labels:
+    name: crawler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: crawler
+  template:
+    metadata:
+      labels:
+        name: crawler
+    spec:
+      containers:
+        - name: crawler
+          image: 389959883210.dkr.ecr.us-east-2.amazonaws.com/cars-parser:latest
+          ports:
+            - containerPort: 2000

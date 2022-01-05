@@ -2,14 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="3fcc477e-45d9-44f4-acc9-49e6c0cf4571" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notificator/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/notificator/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/parser/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/parser/types.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/platforms/autoria/AutoRiaCarDataFetcher.ts" beforeDir="false" afterPath="$PROJECT_DIR$/platforms/autoria/AutoRiaCarDataFetcher.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/platforms/autoria/AutoRiaPriceStatisitcFetcher.ts" beforeDir="false" afterPath="$PROJECT_DIR$/platforms/autoria/AutoRiaPriceStatisitcFetcher.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/platforms/autoria/constants.ts" beforeDir="false" afterPath="$PROJECT_DIR$/platforms/autoria/constants.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/platforms/autoria/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/platforms/autoria/types.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deployment.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/service.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server.ts" beforeDir="false" afterPath="$PROJECT_DIR$/server.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,6 +28,8 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="ts.external.directory.path" value="$PROJECT_DIR$/node_modules/typescript/lib" />
     <property name="vue.rearranger.settings.migration" value="true" />
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
@@ -46,10 +44,22 @@
       <workItem from="1634311062641" duration="15000" />
       <workItem from="1634311461118" duration="22000" />
       <workItem from="1635176722788" duration="11000" />
+      <workItem from="1641420788165" duration="2336000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
 </project>

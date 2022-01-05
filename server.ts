@@ -20,6 +20,11 @@ app.get('/status', async (req, res) => {
   })
 })
 
+app.get('/status', (req, res) => {
+  res.send('Hello World!')
+});
+
+
 app.listen(port, () => {
   console.log(`status endpoint listening at http://localhost:${port}/status`)
 })
