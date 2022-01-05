@@ -1,13 +1,10 @@
-import fs from 'fs';
-import csvParser from 'csv-parser';
-import { createObjectCsvWriter } from 'csv-writer';
 import { Log } from './types';
 import { Log as LogModel } from '../db';
 import { PriceStatistic } from '../platforms/autoria/types';
 
 export default class Logger {
     private logsPath = 'out.csv';
-    
+
     async readLogs(): Promise<Log[]> {
         return LogModel.find();
     }
