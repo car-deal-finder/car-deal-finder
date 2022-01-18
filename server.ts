@@ -18,10 +18,11 @@ app.get('/status', async (req, res) => {
   //   modelsAmount,
   //   itemsParsed: logs.length
   // })
+  res.send('Hello World! Status')
 })
 
-app.get('/status', (req, res) => {
-  res.send('Hello World!')
+app.get('/', (req, res) => {
+  res.send('Hello World! Root')
 });
 
 
