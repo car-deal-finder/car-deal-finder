@@ -17,7 +17,7 @@
     "express": "^4.17.2",
     "i": "^0.3.6",
     "lodash": "^4.17.21",
-    "moment": "^2.29.1",
+    "moment": "^2.29.2",
     "mongoose": "^5.12.11",
     "node-telegram-bot-api": "^0.53.0",
     "npm": "^7.12.1",
