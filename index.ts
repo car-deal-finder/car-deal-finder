@@ -11,13 +11,7 @@ const notificator = new Notificator();
 
 const run = async () => {
   try {
-    console.log(1111)
-    //
-    // const a = new AutoRiaBrand({ name: '', models: [] });
-    // await a.save()
-
     const brands = await AutoRiaBrand.find();
-    console.log(2222)
 
     const logger = new Logger();
     const modelsYearsFetcher = new ModelsYearsFetcher();
@@ -48,20 +42,6 @@ const run = async () => {
 }
 
 (async() => {
-  // const modelsYearsFetcher = new ModelsYearsFetcher();
-  // const range = await modelsYearsFetcher.getYearsOfModel('BMW', '320', 2016);
-  // console.log(range);
-//   const { page } = await createPage();
-//   const { page: page2 } = await createPage();
-
-//   const modelsYearsFetcher = new ModelsYearsFetcher();
-//   const autoRiaPlatformDataFetcher = new AutoRiaPlatformDataFetcher(page2);
-//   const autoRiaCarDataFetcher = new AutoRiaCarDataFetcher(autoRiaPlatformDataFetcher, modelsYearsFetcher, page);
-
-//   const result = await autoRiaCarDataFetcher.parseTitle('Audi A4 2005')
-
-// console.log('result =====', result);
-
   while(true) {
     try {
       await run();

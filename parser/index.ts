@@ -101,19 +101,19 @@ export default class Parser {
 
   createMessage(data: PriceStatistic) {
     return `
-${data.priceType === 'lowest' ? '#СамаяНизкаяЦена! ' : ''}${data.priceType === 'low' ? '#НизкаяЦена ' : ''}${data.priceType === 'high' ? '#ВысокаяЦена ' : ''} ${data.carData.proSeller ? 'Перекуп!' : ''}
-${data.competitorsType === 'lotOfCompetitors' ? 'Множество конкурентов ' : ''}${data.competitorsType === 'midCompetitors' ? 'Несколько конкурентов ' : ''}${data.competitorsType === 'noCompetitors' ? '#НетКонкурентов! ' : ''}
-#${data.carData.location.join(' #')}
-#${data.carData.brand} #${data.carData.model} ${data.carData.year}г. 
-${data.carData.mileage ? `Пробег: ${data.carData.mileage} км.` : ''}
-Года выпуска: ${data.carData.modelYears.length ? data.carData.modelYears.map(years => years.map(o => `${o}г.`).join(' - ')).join(', ') : '?'}
-${data.carData.capacity ? data.carData.capacity.toFixed(1) : ''} ${data.carData.fuelType ? this.translateFuelType(data.carData.fuelType) : ''}
-${data.carData.transmissionType ? this.translateTransmissionType(data.carData.transmissionType) : ''}
-Цена: ${data.carData.price}$
-Другие цены в Украине: ${data.prices.map(o => `${o}$`).join(', ')}
-Ссылка на объявление: ${data.carData.link}
-Сравнить цены в Украине: ${data.pageLink}
-`;
+      ${data.priceType === 'lowest' ? '#СамаяНизкаяЦена! ' : ''}${data.priceType === 'low' ? '#НизкаяЦена ' : ''}${data.priceType === 'high' ? '#ВысокаяЦена ' : ''} ${data.carData.proSeller ? 'Перекуп!' : ''}
+      ${data.competitorsType === 'lotOfCompetitors' ? 'Множество конкурентов ' : ''}${data.competitorsType === 'midCompetitors' ? 'Несколько конкурентов ' : ''}${data.competitorsType === 'noCompetitors' ? '#НетКонкурентов! ' : ''}
+      #${data.carData.location.join(' #')}
+      #${data.carData.brand} #${data.carData.model} ${data.carData.year}г. 
+      ${data.carData.mileage ? `Пробег: ${data.carData.mileage} км.` : ''}
+      Года выпуска: ${data.carData.modelYears.length ? data.carData.modelYears.map(years => years.map(o => `${o}г.`).join(' - ')).join(', ') : '?'}
+      ${data.carData.capacity ? data.carData.capacity.toFixed(1) : ''} ${data.carData.fuelType ? this.translateFuelType(data.carData.fuelType) : ''}
+      ${data.carData.transmissionType ? this.translateTransmissionType(data.carData.transmissionType) : ''}
+      Цена: ${data.carData.price}$
+      Другие цены в Украине: ${data.prices.map(o => `${o}$`).join(', ')}
+      Ссылка на объявление: ${data.carData.link}
+      Сравнить цены в Украине: ${data.pageLink}
+    `;
   }
 
   async launch() {

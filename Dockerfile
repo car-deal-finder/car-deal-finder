@@ -31,4 +31,6 @@ COPY . .
 # Run everything after as non-privileged user.
 # USER pptruser
 EXPOSE 2000
-CMD [ "npm", "run", "start" ]
+
+RUN chmod +x ./start.sh
+CMD ["./start.sh"]
