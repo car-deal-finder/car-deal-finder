@@ -18,7 +18,7 @@
     "i": "^0.3.6",
     "lodash": "^4.17.21",
     "moment": "^2.29.1",
-    "mongoose": "^5.12.11",
+    "mongoose": "^5.13.20",
     "node-telegram-bot-api": "^0.53.0",
     "npm": "^7.12.1",
     "puppeteer": "^13.0.1",
